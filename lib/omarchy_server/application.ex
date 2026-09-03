@@ -5,6 +5,7 @@ defmodule OmarchyServer.Application do
 
   @impl true
   def start(_type, _args) do
+    OmarchyServer.InitSystem.init_cache()
     children = []
 
     opts = [strategy: :one_for_one, name: OmarchyServer.Supervisor]
