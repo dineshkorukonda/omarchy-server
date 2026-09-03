@@ -6,7 +6,12 @@ defmodule OmarchyServer.Application do
   @impl true
   def start(_type, _args) do
     OmarchyServer.InitSystem.init_cache()
-    children = []
+
+    children = [
+      {Registry, keys: :unique, name: OmarchyServer.WorkerRegistry},
+      OmarchyServer.ServerSupervisor,
+      OmarchyServer.ServerManager
+    ]
 
     opts = [strategy: :one_for_one, name: OmarchyServer.Supervisor]
     Supervisor.start_link(children, opts)
