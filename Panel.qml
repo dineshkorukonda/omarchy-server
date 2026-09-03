@@ -28,7 +28,7 @@ Panel {
 
   readonly property color foreground: bar ? bar.barForeground : Color.foreground
   readonly property color urgent: bar ? bar.urgent : Color.urgent
-  readonly property color accent: bar ? bar.accent : Color.accent
+  readonly property color accent: Color.accent
   readonly property color dim: Qt.darker(foreground, 1.55)
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
 
@@ -478,7 +478,7 @@ Panel {
                       text: "CPU " + Model.formatCpu(modelData.metrics)
                       color: root.dim
                       font.family: root.fontFamily
-                      font.pixelSize: Style.fontSize(10)
+                      font.pixelSize: Style.fontPx(10 / 12.0)
                     }
                   }
 
@@ -494,7 +494,7 @@ Panel {
                       text: "MEM " + (modelData.metrics && modelData.metrics.memory ? modelData.metrics.memory.used_percent + "%" : "–")
                       color: root.dim
                       font.family: root.fontFamily
-                      font.pixelSize: Style.fontSize(10)
+                      font.pixelSize: Style.fontPx(10 / 12.0)
                     }
                   }
                 }
@@ -579,7 +579,7 @@ Panel {
                   dim: root.dim
                 }) : root.dim
                 font.family: root.fontFamily
-                font.pixelSize: Style.fontSize(10)
+                font.pixelSize: Style.fontPx(10 / 12.0)
                 font.bold: true
               }
             }
@@ -597,7 +597,7 @@ Panel {
                 text: "Open SSH"
                 color: root.foreground
                 font.family: root.fontFamily
-                font.pixelSize: Style.fontSize(10)
+                font.pixelSize: Style.fontPx(10 / 12.0)
                 font.bold: true
               }
 
@@ -623,7 +623,7 @@ Panel {
                 text: "Remove"
                 color: root.urgent
                 font.family: root.fontFamily
-                font.pixelSize: Style.fontSize(10)
+                font.pixelSize: Style.fontPx(10 / 12.0)
                 font.bold: true
               }
 
@@ -698,7 +698,7 @@ Panel {
                 text: "Load averages (1m, 5m, 15m): " + (root.activeServer ? Model.formatLoad(root.activeServer.metrics) : "–")
                 color: root.dim
                 font.family: root.fontFamily
-                font.pixelSize: Style.fontSize(10)
+                font.pixelSize: Style.fontPx(10 / 12.0)
               }
             }
           }
@@ -810,7 +810,7 @@ Panel {
                     text: modelData.type
                     color: root.dim
                     font.family: root.fontFamily
-                    font.pixelSize: Style.fontSize(9)
+                    font.pixelSize: Style.fontPx(9 / 12.0)
                   }
                 }
 
@@ -843,7 +843,7 @@ Panel {
                     text: "restart"
                     color: root.foreground
                     font.family: root.fontFamily
-                    font.pixelSize: Style.fontSize(9)
+                    font.pixelSize: Style.fontPx(9 / 12.0)
                     font.bold: true
                   }
 
@@ -877,7 +877,7 @@ Panel {
                     text: "stop"
                     color: root.urgent
                     font.family: root.fontFamily
-                    font.pixelSize: Style.fontSize(9)
+                    font.pixelSize: Style.fontPx(9 / 12.0)
                     font.bold: true
                   }
 
@@ -942,7 +942,7 @@ Panel {
                   text: parent.modelData
                   color: root.logLines === parent.modelData ? root.foreground : root.dim
                   font.family: root.fontFamily
-                  font.pixelSize: Style.fontSize(9)
+                  font.pixelSize: Style.fontPx(9 / 12.0)
                   font.bold: true
                 }
 
@@ -966,7 +966,7 @@ Panel {
                 text: root.logBusy ? "loading..." : "load logs"
                 color: root.foreground
                 font.family: root.fontFamily
-                font.pixelSize: Style.fontSize(10)
+                font.pixelSize: Style.fontPx(10 / 12.0)
                 font.bold: true
               }
 
@@ -1007,7 +1007,7 @@ Panel {
                 text: root.logBusy ? "Fetching logs..." : root.logContent
                 color: root.logBusy ? root.dim : Qt.rgba(200, 255, 200, 0.85)
                 font.family: "monospace"
-                font.pixelSize: Style.fontSize(10)
+                font.pixelSize: Style.fontPx(10 / 12.0)
                 wrapMode: Text.WrapAnywhere
               }
             }
@@ -1071,7 +1071,7 @@ Panel {
         implicitHeight: addServerLayout.implicitHeight + Style.space(32)
         anchors.centerIn: parent
         radius: Style.cornerRadius
-        color: bar ? bar.barBackground : Color.background
+        color: Color.background
         border.color: Qt.rgba(255, 255, 255, 0.12)
         border.width: 1
 
@@ -1107,7 +1107,7 @@ Panel {
                 anchors.centerIn: parent
                 text: "✕"
                 color: root.dim
-                font.pixelSize: Style.fontSize(10)
+                font.pixelSize: Style.fontPx(10 / 12.0)
               }
               MouseArea {
                 id: closeMouse
@@ -1138,7 +1138,7 @@ Panel {
               text: "Server Host / IP *"
               color: root.foreground
               font.family: root.fontFamily
-              font.pixelSize: Style.fontSize(11)
+              font.pixelSize: Style.fontPx(11 / 12.0)
               font.bold: true
             }
             Rectangle {
@@ -1178,7 +1178,7 @@ Panel {
               text: "Display Name (optional)"
               color: root.foreground
               font.family: root.fontFamily
-              font.pixelSize: Style.fontSize(11)
+              font.pixelSize: Style.fontPx(11 / 12.0)
               font.bold: true
             }
             Rectangle {
@@ -1222,7 +1222,7 @@ Panel {
                 text: "SSH User"
                 color: root.foreground
                 font.family: root.fontFamily
-                font.pixelSize: Style.fontSize(11)
+                font.pixelSize: Style.fontPx(11 / 12.0)
                 font.bold: true
               }
               Rectangle {
@@ -1261,7 +1261,7 @@ Panel {
                 text: "Port"
                 color: root.foreground
                 font.family: root.fontFamily
-                font.pixelSize: Style.fontSize(11)
+                font.pixelSize: Style.fontPx(11 / 12.0)
                 font.bold: true
               }
               Rectangle {
@@ -1295,7 +1295,7 @@ Panel {
               text: "ProxyJump / Bastion (optional)"
               color: root.foreground
               font.family: root.fontFamily
-              font.pixelSize: Style.fontSize(11)
+              font.pixelSize: Style.fontPx(11 / 12.0)
               font.bold: true
             }
             Rectangle {
@@ -1348,7 +1348,7 @@ Panel {
                 text: "Cancel"
                 color: root.foreground
                 font.family: root.fontFamily
-                font.pixelSize: Style.fontSize(11)
+                font.pixelSize: Style.fontPx(11 / 12.0)
                 font.bold: true
               }
 
@@ -1376,7 +1376,7 @@ Panel {
                 text: "Save & Connect"
                 color: hostInput.text.trim() === "" ? root.dim : "#ffffff"
                 font.family: root.fontFamily
-                font.pixelSize: Style.fontSize(11)
+                font.pixelSize: Style.fontPx(11 / 12.0)
                 font.bold: true
               }
 
@@ -1424,4 +1424,3 @@ Panel {
       }
     }
   }
-}

@@ -216,8 +216,7 @@ defmodule OmarchyServer.ServerWorker do
 
   @impl true
   def handle_info(:reconnect_timer, state) do
-    new_state = %{state | status: :connecting}
-    {:noreply, do_connect(new_state)}
+    {:noreply, do_connect(state)}
   end
 
   @impl true
