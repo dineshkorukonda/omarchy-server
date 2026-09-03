@@ -79,6 +79,46 @@ defmodule OmarchyServer.PluginTest do
         assert result["healthyCount"] == 1
         assert result["degradedCount"] == 1
         assert result["offlineCount"] == 1
+        assert result["worstState"] == "offline"
+      end
+    end
+
+    test "worstState prioritizes offline over degraded and degraded over polling" do
+      node_script = """
+      const fs = require('fs');
+      const vm = require('vm');
+      const code = fs.readFileSync('#{@model_path}', 'utf8');
+      const context = {};
+      vm.createContext(context);
+      vm.runInContext(code, context);
+
+      const allHealthy = context.worstState([{ status: 'polling' }, { status: 'polling' }]);
+      const oneDegraded = context.worstState([{ status: 'polling' }, { status: 'degraded' }]);
+      const oneOffline = context.worstState([{ status: 'polling' }, { status: 'degraded' }, { status: 'reconnecting' }]);
+      const empty = context.worstState([]);
+
+      const colors = { accent: '#22c55e', warning: '#f59e0b', urgent: '#ef4444', dim: '#9ca3af' };
+      const green = context.statusColor(allHealthy, colors);
+      const yellow = context.statusColor(oneDegraded, colors);
+      const red = context.statusColor(oneOffline, colors);
+
+      console.log(JSON.stringify({ allHealthy, oneDegraded, oneOffline, empty, green, yellow, red }));
+      """
+
+      node = System.find_executable("node")
+
+      if node do
+        {output, 0} = System.cmd(node, ["-e", node_script])
+        {:ok, result} = :json.decode(String.trim(output)) |> then(&{:ok, &1})
+
+        assert result["allHealthy"] == "polling"
+        assert result["oneDegraded"] == "degraded"
+        assert result["oneOffline"] == "offline"
+        assert result["empty"] == "empty"
+
+        assert result["green"] == "#22c55e"
+        assert result["yellow"] == "#f59e0b"
+        assert result["red"] == "#ef4444"
       end
     end
   end
