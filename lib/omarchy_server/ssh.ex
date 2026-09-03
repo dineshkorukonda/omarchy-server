@@ -185,7 +185,8 @@ defmodule OmarchyServer.SSH do
     timeout = Keyword.get(opts, :timeout, 15_000)
 
     with {:ok, channel_id} <- open_session(conn_ref, timeout),
-         status when status in [:ok, :success] <- send_exec(conn_ref, channel_id, command, timeout) do
+         status when status in [:ok, :success] <-
+           send_exec(conn_ref, channel_id, command, timeout) do
       collect_output(conn_ref, channel_id, timeout)
     else
       {:error, reason} -> {:error, {:exec_failed, reason}}

@@ -147,6 +147,7 @@ defmodule OmarchyServer.SocketAPITest do
       :gen_tcp.close(client)
 
       assert {:ok, json} = :json.decode(data) |> then(&{:ok, &1})
+
       # reload attempts file sync (which may succeed or return error if file doesn't exist, but responds valid JSON)
       assert is_map(json)
       assert Map.has_key?(json, "status")

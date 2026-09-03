@@ -104,6 +104,7 @@ defmodule OmarchyServer.ServiceActionTest do
           if not String.contains?(cmd, "softlevel") do
             send(parent, {:exec_called, cmd})
           end
+
           {:ok, "Success\nexit_code:0", 0}
 
         _server, {:close, :mock_conn} ->
@@ -149,6 +150,7 @@ defmodule OmarchyServer.ServiceActionTest do
           if not String.contains?(cmd, "softlevel") do
             send(parent, {:exec_logs, cmd})
           end
+
           {:ok, "systemd journal entries line 1\nline 2", 0}
 
         _server, {:close, :mock_conn} ->

@@ -146,7 +146,9 @@ defmodule OmarchyServer.ConfigTest do
       assert {:error, msg4} = Server.from_map(%{"host" => "example.com", "port" => "not_int"})
       assert msg4 =~ "invalid port number"
 
-      assert {:error, msg5} = Server.from_map(%{"host" => "example.com", "checks" => "not_a_list"})
+      assert {:error, msg5} =
+               Server.from_map(%{"host" => "example.com", "checks" => "not_a_list"})
+
       assert msg5 =~ "'checks' must be a list"
     end
   end

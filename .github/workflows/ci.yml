@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Unit Tests & Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Elixir and Erlang/OTP
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: '1.18.2'
+          otp-version: '27.2'
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-
+
+      - name: Install dependencies
+        run: mix deps.get
+
+      - name: Compile with warnings as errors
+        run: mix compile --warnings-as-errors
+
+      - name: Check formatting
+        run: mix format --check-formatted
+
+      - name: Run unit test suite
+        run: mix test
+
+  integration-test:
+    name: Integration Tests (Docker SSH Target)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Elixir and Erlang/OTP
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: '1.18.2'
+          otp-version: '27.2'
+
+      - name: Install dependencies
+        run: mix deps.get
+
+      - name: Build and start SSH test fixture
+        run: docker compose -f docker-compose.test.yml up -d --build
+
+      - name: Run integration tests
+        run: mix test test/integration --include integration
+
+      - name: Tear down test fixture
+        if: always()
+        run: docker compose -f docker-compose.test.yml down
