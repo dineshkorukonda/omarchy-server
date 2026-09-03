@@ -1,6 +1,7 @@
 defmodule OmarchyServer.ServerManagerTest do
   use ExUnit.Case, async: false
 
+  alias OmarchyServer.Config
   alias OmarchyServer.Config.Server
   alias OmarchyServer.ServerManager
   alias OmarchyServer.ServerSupervisor
@@ -161,6 +162,58 @@ defmodule OmarchyServer.ServerManagerTest do
       assert single.id == "srv-inspect"
 
       assert {:error, :not_found} = ServerManager.get_server(manager, "unknown-id")
+    end
+  end
+
+  describe "add_server/3 and remove_server/2" do
+    test "dynamically adds and removes server workers and persists changes", %{
+      manager: manager,
+      supervisor: sup
+    } do
+      config_file =
+        Path.join(
+          System.tmp_dir!(),
+          "manager_add_remove_test_#{System.unique_integer([:positive])}.yaml"
+        )
+
+      File.write!(config_file, "servers: []\n")
+      on_exit(fn -> File.rm(config_file) end)
+
+      # Initialize manager config path
+      ServerManager.sync_file(manager, config_file)
+
+      server_map = %{
+        "id" => "dyn-srv-1",
+        "name" => "Dynamic Server 1",
+        "host" => "192.168.1.20",
+        "port" => 22
+      }
+
+      assert {:ok, result} = ServerManager.add_server(manager, server_map)
+      assert result.id == "dyn-srv-1"
+      assert result.status == "started"
+
+      # Worker is running
+      workers = ServerManager.get_workers(manager)
+      assert Map.has_key?(workers, "dyn-srv-1")
+      assert ServerSupervisor.count_workers(sup) >= 1
+
+      # File was written
+      assert {:ok, file_cfg} = Config.load_file(config_file)
+      assert length(file_cfg.servers) == 1
+      assert hd(file_cfg.servers).id == "dyn-srv-1"
+
+      # Remove server
+      assert {:ok, rem_result} = ServerManager.remove_server(manager, "dyn-srv-1")
+      assert rem_result.id == "dyn-srv-1"
+      assert rem_result.status == "removed"
+
+      workers_after = ServerManager.get_workers(manager)
+      refute Map.has_key?(workers_after, "dyn-srv-1")
+
+      # File was updated
+      assert {:ok, updated_cfg} = Config.load_file(config_file)
+      assert updated_cfg.servers == []
     end
   end
 end

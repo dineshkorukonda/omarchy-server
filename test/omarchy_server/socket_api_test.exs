@@ -152,5 +152,58 @@ defmodule OmarchyServer.SocketAPITest do
       assert is_map(json)
       assert Map.has_key?(json, "status")
     end
+
+    test "handles add_server and remove_server commands", %{socket_path: sock_path} do
+      {:ok, client} =
+        :gen_tcp.connect({:local, String.to_charlist(sock_path)}, 0, [
+          :binary,
+          :local,
+          active: false
+        ])
+
+      add_req =
+        ~s({"command": "add_server", "server": {"id": "sock-dyn-1", "host": "192.168.1.55", "port": 2222}}\n)
+
+      assert :ok = :gen_tcp.send(client, add_req)
+      {:ok, data} = :gen_tcp.recv(client, 0, 1000)
+      :gen_tcp.close(client)
+
+      assert {:ok, json} = :json.decode(data) |> then(&{:ok, &1})
+      assert json["status"] == "ok"
+      assert json["server"]["id"] == "sock-dyn-1"
+
+      # Verify it appears in get_server
+      {:ok, client2} =
+        :gen_tcp.connect({:local, String.to_charlist(sock_path)}, 0, [
+          :binary,
+          :local,
+          active: false
+        ])
+
+      get_req = ~s({"command": "get_server", "server_id": "sock-dyn-1"}\n)
+      assert :ok = :gen_tcp.send(client2, get_req)
+      {:ok, data2} = :gen_tcp.recv(client2, 0, 1000)
+      :gen_tcp.close(client2)
+
+      assert {:ok, json2} = :json.decode(data2) |> then(&{:ok, &1})
+      assert json2["status"] == "ok"
+      assert json2["server"]["id"] == "sock-dyn-1"
+
+      # Remove server
+      {:ok, client3} =
+        :gen_tcp.connect({:local, String.to_charlist(sock_path)}, 0, [
+          :binary,
+          :local,
+          active: false
+        ])
+
+      rem_req = ~s({"command": "remove_server", "server_id": "sock-dyn-1"}\n)
+      assert :ok = :gen_tcp.send(client3, rem_req)
+      {:ok, data3} = :gen_tcp.recv(client3, 0, 1000)
+      :gen_tcp.close(client3)
+
+      assert {:ok, json3} = :json.decode(data3) |> then(&{:ok, &1})
+      assert json3["status"] == "ok"
+    end
   end
 end

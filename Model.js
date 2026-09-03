@@ -266,3 +266,36 @@ function buildSshCommand(server) {
   args.push(server.host)
   return args
 }
+
+function buildAddServerCmd(serverData) {
+  var payload = {
+    id: serverData.id || serverData.host,
+    name: serverData.name || serverData.id || serverData.host,
+    host: serverData.host,
+    port: parseInt(serverData.port, 10) || 22
+  }
+
+  if (serverData.user && serverData.user.trim().length > 0) {
+    payload.user = serverData.user.trim()
+  }
+
+  if (serverData.proxy_jump && serverData.proxy_jump.trim().length > 0) {
+    payload.proxy_jump = serverData.proxy_jump.trim()
+  }
+
+  if (Array.isArray(serverData.checks)) {
+    payload.checks = serverData.checks
+  }
+
+  return JSON.stringify({
+    command: "add_server",
+    server: payload
+  })
+}
+
+function buildRemoveServerCmd(serverId) {
+  return JSON.stringify({
+    command: "remove_server",
+    server_id: serverId
+  })
+}

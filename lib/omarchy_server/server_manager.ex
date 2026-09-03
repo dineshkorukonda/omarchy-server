@@ -98,6 +98,36 @@ defmodule OmarchyServer.ServerManager do
     GenServer.call(manager, :get_workers)
   end
 
+  @doc """
+  Dynamically adds a server, starts a worker for it, and persists it to servers.yaml.
+  """
+  def add_server(server_or_map) do
+    add_server(@name, server_or_map, [])
+  end
+
+  def add_server(manager, server_or_map) when is_pid(manager) or is_atom(manager) do
+    add_server(manager, server_or_map, [])
+  end
+
+  def add_server(server_or_map, opts) when is_list(opts) do
+    add_server(@name, server_or_map, opts)
+  end
+
+  def add_server(manager, server_or_map, opts) do
+    GenServer.call(manager, {:add_server, server_or_map, opts})
+  end
+
+  @doc """
+  Removes a server by ID, stops its worker, and updates servers.yaml.
+  """
+  def remove_server(server_id) do
+    remove_server(@name, server_id)
+  end
+
+  def remove_server(manager, server_id) do
+    GenServer.call(manager, {:remove_server, server_id})
+  end
+
   # Server Callbacks
 
   @impl true
@@ -186,6 +216,34 @@ defmodule OmarchyServer.ServerManager do
     {:reply, state.workers, state}
   end
 
+  @impl true
+  def handle_call({:add_server, server_or_map, opts}, _from, state) do
+    case parse_server_input(server_or_map) do
+      {:ok, %Server{} = server} ->
+        case do_add_server(state, server, opts) do
+          {:ok, new_state, result} ->
+            {:reply, {:ok, result}, new_state}
+
+          {:error, reason} ->
+            {:reply, {:error, reason}, state}
+        end
+
+      {:error, reason} ->
+        {:reply, {:error, reason}, state}
+    end
+  end
+
+  @impl true
+  def handle_call({:remove_server, server_id}, _from, state) do
+    case do_remove_server(state, to_string(server_id)) do
+      {:ok, new_state, result} ->
+        {:reply, {:ok, result}, new_state}
+
+      {:error, reason} ->
+        {:reply, {:error, reason}, state}
+    end
+  end
+
   # Internal Logic
 
   defp do_sync_file(state, path, opts) do
@@ -265,6 +323,100 @@ defmodule OmarchyServer.ServerManager do
       total_active: map_size(final_workers)
     }
 
-    {:ok, %{state | workers: final_workers}, result}
+    new_state =
+      if runner do
+        %{state | workers: final_workers, runner: runner}
+      else
+        %{state | workers: final_workers}
+      end
+
+    {:ok, new_state, result}
+  end
+
+  defp parse_server_input(%Server{} = s), do: {:ok, s}
+  defp parse_server_input(attrs) when is_map(attrs), do: Server.from_map(attrs)
+  defp parse_server_input(_other), do: {:error, "server must be a map or %Server{}"}
+
+  defp do_add_server(state, %Server{} = server, opts) do
+    # 1. Start worker
+    runner = Keyword.get(opts, :runner, state.runner)
+    poll_interval = Keyword.get(opts, :poll_interval, state.poll_interval)
+
+    worker_opts = [poll_interval: poll_interval]
+    worker_opts = if runner, do: Keyword.put(worker_opts, :runner, runner), else: worker_opts
+
+    # If existing worker exists for this id, stop it first
+    if existing_pid = Map.get(state.workers, server.id) do
+      ServerSupervisor.stop_worker(state.supervisor, existing_pid)
+    end
+
+    case ServerSupervisor.start_worker(state.supervisor, server, worker_opts) do
+      {:ok, pid} ->
+        new_workers = Map.put(state.workers, server.id, pid)
+        target_path = state.config_path || Config.default_config_path()
+
+        # 2. Persist to servers.yaml
+        persist_server_addition(target_path, server)
+
+        result = %{
+          id: server.id,
+          name: server.name || server.id,
+          host: server.host,
+          port: server.port,
+          status: "started"
+        }
+
+        {:ok, %{state | workers: new_workers, config_path: target_path}, result}
+
+      {:error, reason} ->
+        {:error, {:start_worker_failed, reason}}
+    end
+  end
+
+  defp do_remove_server(state, server_id) do
+    case Map.get(state.workers, server_id) do
+      nil ->
+        {:error, :not_found}
+
+      pid ->
+        ServerSupervisor.stop_worker(state.supervisor, pid)
+        new_workers = Map.delete(state.workers, server_id)
+        target_path = state.config_path || Config.default_config_path()
+
+        persist_server_removal(target_path, server_id)
+
+        {:ok, %{state | workers: new_workers}, %{id: server_id, status: "removed"}}
+    end
+  end
+
+  defp persist_server_addition(path, %Server{} = server) do
+    current_servers =
+      case Config.load_file(path) do
+        {:ok, %Config{servers: servers}} -> servers
+        _ -> []
+      end
+
+    # Replace if same ID exists, or append
+    updated_servers =
+      if Enum.any?(current_servers, fn s -> s.id == server.id end) do
+        Enum.map(current_servers, fn s ->
+          if s.id == server.id, do: server, else: s
+        end)
+      else
+        current_servers ++ [server]
+      end
+
+    Config.save_file(updated_servers, path)
+  end
+
+  defp persist_server_removal(path, server_id) do
+    case Config.load_file(path) do
+      {:ok, %Config{servers: servers}} ->
+        filtered = Enum.reject(servers, fn s -> s.id == server_id end)
+        Config.save_file(filtered, path)
+
+      _ ->
+        :ok
+    end
   end
 end

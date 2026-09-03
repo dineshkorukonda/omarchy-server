@@ -191,4 +191,37 @@ defmodule OmarchyServer.ConfigTest do
       end
     end
   end
+
+  describe "dump_string/1 and save_file/2" do
+    test "serializes config to YAML and saves to file" do
+      server = %OmarchyServer.Config.Server{
+        id: "save-srv-1",
+        name: "Save Srv",
+        host: "10.0.0.1",
+        port: 2222,
+        user: "deploy",
+        checks: [%OmarchyServer.Config.Check{type: :systemctl, name: "nginx"}]
+      }
+
+      yaml = Config.dump_string([server])
+      assert yaml =~ "save-srv-1"
+      assert yaml =~ "host: 10.0.0.1"
+      assert yaml =~ "port: 2222"
+      assert yaml =~ "nginx"
+
+      path = Path.join(System.tmp_dir!(), "save_test_#{System.unique_integer([:positive])}.yaml")
+      on_exit(fn -> File.rm(path) end)
+
+      assert :ok = Config.save_file([server], path)
+      assert {:ok, loaded} = Config.load_file(path)
+      assert length(loaded.servers) == 1
+      assert hd(loaded.servers).id == "save-srv-1"
+    end
+
+    test "default_config_path/0 returns a path" do
+      path = Config.default_config_path()
+      assert is_binary(path)
+      assert String.ends_with?(path, "servers.yaml")
+    end
+  end
 end

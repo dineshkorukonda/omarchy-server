@@ -183,6 +183,18 @@ defmodule OmarchyServer.SocketAPI do
               {:error, reason} -> %{status: "error", error: inspect(reason)}
             end
 
+          {:ok, %{"command" => "add_server", "server" => server_map}} ->
+            case ServerManager.add_server(server_map) do
+              {:ok, result} -> %{status: "ok", server: result}
+              {:error, reason} -> %{status: "error", error: inspect(reason)}
+            end
+
+          {:ok, %{"command" => "remove_server", "server_id" => server_id}} ->
+            case ServerManager.remove_server(server_id) do
+              {:ok, result} -> %{status: "ok", result: result}
+              {:error, reason} -> %{status: "error", error: inspect(reason)}
+            end
+
           _ ->
             get_all_servers_response()
         end
