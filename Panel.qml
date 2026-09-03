@@ -266,8 +266,14 @@ Panel {
     owner: root
     bar: root.bar
     open: root.opened
-    contentWidth: panel.fittedContentWidth(Style.space(420))
-    contentHeight: panel.fittedContentHeight(panelContent.implicitHeight + Style.space(24), Style.space(560))
+    centerOnBar: true
+    contentWidth: panel.fittedContentWidth(Style.space(440))
+    contentHeight: panel.fittedContentHeight(
+      root.addServerVisible
+        ? Math.max(panelContent.implicitHeight + Style.space(24), Style.space(490))
+        : (panelContent.implicitHeight + Style.space(24)),
+      Style.space(620)
+    )
 
     Flickable {
       id: panelFlick
@@ -1052,7 +1058,7 @@ Panel {
       id: addServerOverlay
       anchors.fill: parent
       visible: root.addServerVisible
-      color: Qt.rgba(0, 0, 0, 0.70)
+      color: Qt.rgba(0, 0, 0, 0.75)
       z: 100
 
       // Click outside to dismiss
@@ -1065,13 +1071,14 @@ Panel {
 
       Rectangle {
         id: addServerCard
-        width: Math.min(parent.width - Style.space(32), Style.space(380))
-        implicitHeight: addServerLayout.implicitHeight + Style.space(32)
+        width: Math.min(parent.width - Style.space(20), Style.space(400))
+        height: Math.min(parent.height - Style.space(20), addServerLayout.implicitHeight + Style.space(28))
         anchors.centerIn: parent
         radius: Style.cornerRadius
         color: Color.background
-        border.color: Qt.rgba(255, 255, 255, 0.12)
+        border.color: Qt.rgba(255, 255, 255, 0.15)
         border.width: 1
+        clip: true
 
         // Prevent clicks inside card from dismissing
         MouseArea {
@@ -1079,11 +1086,19 @@ Panel {
           onClicked: {}
         }
 
-        ColumnLayout {
-          id: addServerLayout
+        Flickable {
           anchors.fill: parent
-          anchors.margins: Style.space(16)
-          spacing: Style.space(10)
+          anchors.margins: Style.space(14)
+          contentWidth: width
+          contentHeight: addServerLayout.implicitHeight
+          clip: true
+          boundsBehavior: Flickable.StopAtBounds
+          ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+          ColumnLayout {
+            id: addServerLayout
+            width: parent.width
+            spacing: Style.space(10)
 
           // Title
           RowLayout {
@@ -1422,4 +1437,5 @@ Panel {
       }
     }
   }
+}
 }
