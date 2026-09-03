@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "omarchy-server",
+  "name": "Servers",
+  "version": "1.0.0",
+  "author": "Dinesh Korukonda",
+  "license": "MIT",
+  "description": "Server monitoring and remote management in the Omarchy bar.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Servers",
+    "description": "Server health status dot, server detail panel, service management, and SSH terminal launcher.",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "refreshIntervalSec": 5,
+      "socketPath": "/tmp/omarchy_server.sock"
+    },
+    "schema": [
+      {
+        "key": "refreshIntervalSec",
+        "type": "integer",
+        "label": "Refresh interval (seconds)",
+        "min": 1,
+        "max": 300,
+        "step": 1,
+        "defaultValue": 5
+      },
+      {
+        "key": "socketPath",
+        "type": "string",
+        "label": "Daemon Unix socket path",
+        "defaultValue": "/tmp/omarchy_server.sock"
+      }
+    ]
+  }
+}
