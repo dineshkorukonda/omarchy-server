@@ -29,11 +29,11 @@ ssh-copy-id user@your-server-ip
 ssh user@your-server-ip "uname -a"
 ```
 
-### 2. Adding Servers
+### 2. Managing Servers
 
-You can add and manage servers using **either** the graphical UI or the YAML configuration file:
+Servers are added and managed exclusively through the **GUI** (Omarchy bar flyout) or the **TUI** (terminal interface):
 
-#### Method A: Directly from the Omarchy UI (Recommended)
+#### Method A: Directly from the Omarchy UI (GUI)
 1. Click the **Servers** pill in the Omarchy bar to open the flyout panel.
 2. Click the **"+ Add Server"** button in the top right.
 3. Fill in the fields:
@@ -42,37 +42,21 @@ You can add and manage servers using **either** the graphical UI or the YAML con
    - **SSH User**: e.g., `deploy` or `root`
    - **Port**: SSH port (default: `22`)
    - **ProxyJump / Bastion**: *(Optional)* Jump host if server is behind a firewall
-4. Click **"Save & Connect"**. The server is immediately persisted to `~/.config/omarchy/servers.yaml` and starts polling.
+4. Click **"Save & Connect"**. The server is immediately registered and starts polling.
 
-#### Method B: Manual Configuration (`~/.config/omarchy/servers.yaml`)
-Create or edit `~/.config/omarchy/servers.yaml`:
+#### Method B: Terminal UI (TUI)
+Launch the interactive terminal interface:
 
-```yaml
-servers:
-  - id: prod-web-1
-    name: "Production Web 01"
-    host: 192.168.1.100
-    user: deploy
-    port: 22
-    # ProxyJump: bastion.example.com
-    checks:
-      - type: systemctl
-        name: nginx
-      - type: docker
-        name: postgres
-      - type: pm2
-        name: api-service
-
-  - id: staging-app
-    name: "Staging API"
-    host: staging.example.com
-    user: ubuntu
-```
-
-To reload configuration changes without restarting:
 ```sh
-echo '{"command": "reload"}' | nc -U /tmp/omarchy_server.sock
+./bin/omarchy-server-tui
 ```
+
+The TUI provides interactive menus to:
+- List all monitored servers, statuses, and init systems
+- View live CPU, RAM, and Disk metrics
+- Interactively add new server targets
+- Remove server targets with confirmation
+- Tail and view remote logs via pager
 
 ---
 

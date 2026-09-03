@@ -215,5 +215,38 @@ defmodule OmarchyServer.ServerManagerTest do
       assert {:ok, updated_cfg} = Config.load_file(config_file)
       assert updated_cfg.servers == []
     end
+
+    test "removes server from config file even if its worker is not active", %{
+      manager: manager
+    } do
+      config_file =
+        Path.join(
+          System.tmp_dir!(),
+          "manager_inactive_test_#{System.unique_integer([:positive])}.yaml"
+        )
+
+      on_exit(fn -> File.rm(config_file) end)
+
+      server = %Server{id: "orphan-srv", host: "10.0.0.99"}
+      Config.save_file([server], config_file)
+
+      # Server is in config file but not in manager workers
+      workers = ServerManager.get_workers(manager)
+      refute Map.has_key?(workers, "orphan-srv")
+
+      # Remove should succeed and remove it from config
+      System.put_env("OMARCHY_SERVERS_CONFIG", config_file)
+
+      try do
+        assert {:ok, rem_result} = ServerManager.remove_server(manager, "orphan-srv")
+        assert rem_result.id == "orphan-srv"
+        assert rem_result.status == "removed"
+
+        assert {:ok, updated_cfg} = Config.load_file(config_file)
+        assert updated_cfg.servers == []
+      after
+        System.delete_env("OMARCHY_SERVERS_CONFIG")
+      end
+    end
   end
 end

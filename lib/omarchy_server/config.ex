@@ -17,12 +17,12 @@ defmodule OmarchyServer.Config do
   end
 
   @doc """
-  Returns the default servers.yaml config file path.
+  Returns the default servers.json config file path.
   Priority:
   1. System env OMARCHY_SERVERS_CONFIG
-  2. ~/.config/omarchy/servers.yaml
-  3. servers.yaml in current working directory (if it exists)
-  4. ~/.config/omarchy/servers.yaml
+  2. ~/.config/omarchy/servers.json (if it exists)
+  3. ~/.config/omarchy/servers.yaml (legacy fallback)
+  4. ~/.config/omarchy/servers.json (default)
   """
   @spec default_config_path() :: Path.t()
   def default_config_path do
@@ -30,19 +30,19 @@ defmodule OmarchyServer.Config do
       env_path = System.get_env("OMARCHY_SERVERS_CONFIG") ->
         Path.expand(env_path)
 
+      File.exists?(Path.expand("~/.config/omarchy/servers.json")) ->
+        Path.expand("~/.config/omarchy/servers.json")
+
       File.exists?(Path.expand("~/.config/omarchy/servers.yaml")) ->
         Path.expand("~/.config/omarchy/servers.yaml")
 
-      File.exists?("servers.yaml") ->
-        Path.expand("servers.yaml")
-
       true ->
-        Path.expand("~/.config/omarchy/servers.yaml")
+        Path.expand("~/.config/omarchy/servers.json")
     end
   end
 
   @doc """
-  Loads and parses configuration from a YAML file path.
+  Loads and parses configuration from a JSON or YAML file path.
   """
   @spec load_file(Path.t()) :: {:ok, t()} | {:error, String.t()}
   def load_file(path) when is_binary(path) do
@@ -56,20 +56,67 @@ defmodule OmarchyServer.Config do
   end
 
   @doc """
-  Saves a Config struct or list of servers to a YAML file path.
+  Saves a Config struct or list of servers to a JSON or YAML file path.
   Creates parent directories if necessary.
   """
   @spec save_file(t() | list(Server.t()), Path.t()) :: :ok | {:error, String.t()}
   def save_file(config_or_servers, path) when is_binary(path) do
-    yaml_content = dump_string(config_or_servers)
+    content =
+      if String.ends_with?(path, [".yaml", ".yml"]) do
+        dump_string(config_or_servers)
+      else
+        dump_json(config_or_servers)
+      end
 
     with :ok <- File.mkdir_p(Path.dirname(path)),
-         :ok <- File.write(path, yaml_content) do
+         :ok <- File.write(path, content) do
       :ok
     else
       {:error, reason} ->
         {:error, "failed to write config file '#{path}': #{:file.format_error(reason)}"}
     end
+  end
+
+  @doc """
+  Serializes a Config struct or list of servers into a JSON formatted string.
+  """
+  @spec dump_json(t() | list(Server.t())) :: String.t()
+  def dump_json(%__MODULE__{servers: servers}), do: dump_json(servers)
+
+  def dump_json([]) do
+    "{\"servers\":[]}\n"
+  end
+
+  def dump_json(servers) when is_list(servers) do
+    data = %{
+      "servers" =>
+        Enum.map(servers, fn %Server{} = s ->
+          base = %{
+            "id" => s.id,
+            "name" => s.name || s.id,
+            "host" => s.host,
+            "port" => s.port || 22
+          }
+
+          base = if s.user, do: Map.put(base, "user", s.user), else: base
+          base = if s.proxy_jump, do: Map.put(base, "proxy_jump", s.proxy_jump), else: base
+
+          if s.checks && s.checks != [] do
+            checks_list =
+              Enum.map(s.checks, fn %Check{type: type, name: name} ->
+                %{"type" => to_string(type), "name" => name}
+              end)
+
+            Map.put(base, "checks", checks_list)
+          else
+            base
+          end
+        end)
+    }
+
+    :json.encode(data)
+    |> IO.iodata_to_binary()
+    |> Kernel.<>("\n")
   end
 
   @doc """
@@ -147,19 +194,39 @@ defmodule OmarchyServer.Config do
   end
 
   @doc """
-  Loads and parses configuration from a YAML string.
+  Loads and parses configuration from a JSON or YAML string.
   """
   @spec load_string(String.t()) :: {:ok, t()} | {:error, String.t()}
-  def load_string(yaml_string) when is_binary(yaml_string) do
-    case YamlElixir.read_from_string(yaml_string) do
-      {:ok, data} ->
-        parse_data(data)
+  def load_string(content) when is_binary(content) do
+    trimmed = String.trim_leading(content)
 
-      {:error, %YamlElixir.ParsingError{message: message}} ->
-        {:error, "invalid YAML syntax: #{message}"}
+    if String.starts_with?(trimmed, "{") or String.starts_with?(trimmed, "[") do
+      case decode_json_string(content) do
+        {:ok, data} ->
+          parse_data(data)
 
-      {:error, reason} ->
-        {:error, "invalid YAML: #{inspect(reason)}"}
+        {:error, reason} ->
+          {:error, "invalid JSON syntax: #{reason}"}
+      end
+    else
+      case YamlElixir.read_from_string(content) do
+        {:ok, data} ->
+          parse_data(data)
+
+        {:error, %YamlElixir.ParsingError{message: message}} ->
+          {:error, "invalid YAML syntax: #{message}"}
+
+        {:error, reason} ->
+          {:error, "invalid YAML: #{inspect(reason)}"}
+      end
+    end
+  end
+
+  defp decode_json_string(content) do
+    try do
+      {:ok, :json.decode(content)}
+    rescue
+      e -> {:error, Exception.message(e)}
     end
   end
 

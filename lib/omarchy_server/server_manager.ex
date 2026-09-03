@@ -374,18 +374,31 @@ defmodule OmarchyServer.ServerManager do
   end
 
   defp do_remove_server(state, server_id) do
-    case Map.get(state.workers, server_id) do
-      nil ->
-        {:error, :not_found}
+    target_path = state.config_path || Config.default_config_path()
+    pid = Map.get(state.workers, server_id)
+    in_config? = server_in_config?(target_path, server_id)
 
-      pid ->
-        ServerSupervisor.stop_worker(state.supervisor, pid)
-        new_workers = Map.delete(state.workers, server_id)
-        target_path = state.config_path || Config.default_config_path()
+    if pid do
+      ServerSupervisor.stop_worker(state.supervisor, pid)
+    end
 
-        persist_server_removal(target_path, server_id)
+    new_workers = Map.delete(state.workers, server_id)
+    persist_server_removal(target_path, server_id)
 
-        {:ok, %{state | workers: new_workers}, %{id: server_id, status: "removed"}}
+    if pid != nil or in_config? do
+      {:ok, %{state | workers: new_workers}, %{id: server_id, status: "removed"}}
+    else
+      {:error, :not_found}
+    end
+  end
+
+  defp server_in_config?(path, server_id) do
+    case Config.load_file(path) do
+      {:ok, %Config{servers: servers}} ->
+        Enum.any?(servers, fn s -> s.id == server_id end)
+
+      _ ->
+        false
     end
   end
 

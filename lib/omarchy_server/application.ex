@@ -7,10 +7,24 @@ defmodule OmarchyServer.Application do
   def start(_type, _args) do
     OmarchyServer.InitSystem.init_cache()
 
+    config_path =
+      if Code.ensure_loaded?(Mix) and Mix.env() == :test do
+        nil
+      else
+        OmarchyServer.Config.default_config_path()
+      end
+
+    manager_child =
+      if config_path do
+        {OmarchyServer.ServerManager, config_path: config_path}
+      else
+        OmarchyServer.ServerManager
+      end
+
     children = [
       {Registry, keys: :unique, name: OmarchyServer.WorkerRegistry},
       OmarchyServer.ServerSupervisor,
-      OmarchyServer.ServerManager,
+      manager_child,
       OmarchyServer.SocketAPI
     ]
 

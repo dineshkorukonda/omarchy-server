@@ -218,10 +218,37 @@ defmodule OmarchyServer.ConfigTest do
       assert hd(loaded.servers).id == "save-srv-1"
     end
 
+    test "serializes config to JSON and loads from JSON file" do
+      server = %OmarchyServer.Config.Server{
+        id: "json-srv-1",
+        name: "JSON Srv",
+        host: "10.0.0.2",
+        port: 22,
+        user: "root",
+        proxy_jump: "jump.internal",
+        checks: [%OmarchyServer.Config.Check{type: :docker, name: "redis"}]
+      }
+
+      json_str = Config.dump_json([server])
+      assert json_str =~ "json-srv-1"
+      assert json_str =~ "10.0.0.2"
+
+      path = Path.join(System.tmp_dir!(), "save_test_#{System.unique_integer([:positive])}.json")
+      on_exit(fn -> File.rm(path) end)
+
+      assert :ok = Config.save_file([server], path)
+      assert {:ok, loaded} = Config.load_file(path)
+      assert length(loaded.servers) == 1
+      assert hd(loaded.servers).id == "json-srv-1"
+      assert hd(loaded.servers).user == "root"
+      assert hd(loaded.servers).proxy_jump == "jump.internal"
+      assert length(hd(loaded.servers).checks) == 1
+    end
+
     test "default_config_path/0 returns a path" do
       path = Config.default_config_path()
       assert is_binary(path)
-      assert String.ends_with?(path, "servers.yaml")
+      assert String.ends_with?(path, "servers.json") or String.ends_with?(path, "servers.yaml")
     end
   end
 end

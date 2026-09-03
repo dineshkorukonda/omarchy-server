@@ -1,0 +1,366 @@
+#!/usr/bin/env bash
+
+# Terminal UI for managing omarchy-server targets.
+# Communicates directly with the daemon Unix domain socket.
+
+set -euo pipefail
+
+SOCKET_PATH="${OMARCHY_SERVER_SOCK:-/tmp/omarchy_server.sock}"
+
+check_dependencies() {
+  local missing=()
+  for cmd in gum jq nc; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+      missing+=("$cmd")
+    fi
+  done
+
+  if [ ${#missing[@]} -gt 0 ]; then
+    echo "Error: missing required tools: ${missing[*]}" >&2
+    echo "Please install them to use omarchy-server-tui." >&2
+    exit 1
+  fi
+}
+
+send_socket_cmd() {
+  local payload="$1"
+  echo "$payload" | nc -U "$SOCKET_PATH" 2>/dev/null
+}
+
+is_daemon_alive() {
+  if [ ! -S "$SOCKET_PATH" ]; then
+    return 1
+  fi
+  local resp
+  resp=$(send_socket_cmd "GET")
+  [ -n "$resp" ] && echo "$resp" | jq -e '.status == "ok"' >/dev/null 2>&1
+}
+
+fetch_servers_json() {
+  local resp
+  resp=$(send_socket_cmd "GET")
+  if [ -z "$resp" ]; then
+    echo "[]"
+    return 0
+  fi
+  echo "$resp" | jq -c '.servers // []'
+}
+
+show_header() {
+  clear
+  gum style \
+    --foreground 6 \
+    --border-foreground 6 \
+    --border rounded \
+    --align center \
+    --width 60 \
+    --margin "0 1" \
+    --padding "0 1" \
+    "Omarchy Server Management (TUI)"
+}
+
+action_list_servers() {
+  show_header
+  local servers
+  servers=$(fetch_servers_json)
+  local count
+  count=$(echo "$servers" | jq 'length')
+
+  if [ "$count" -eq 0 ]; then
+    gum style --foreground 3 "No servers currently registered."
+    echo ""
+    gum input --placeholder "Press Enter to return to menu..." >/dev/null
+    return 0
+  fi
+
+  gum style --bold "Monitored Servers ($count):"
+  echo ""
+
+  local table_data="ID,NAME,HOST,PORT,STATUS,INIT\n"
+  table_data+=$(echo "$servers" | jq -r '.[] | "\(.id),\(.name // .id),\(.host),\(.port // 22),\(.status),\(.init_system // "-")"')
+
+  printf "%b" "$table_data" | gum table -w 15,20,18,8,14,12
+  echo ""
+  gum input --placeholder "Press Enter to return to menu..." >/dev/null
+}
+
+action_server_details() {
+  show_header
+  local servers
+  servers=$(fetch_servers_json)
+  local count
+  count=$(echo "$servers" | jq 'length')
+
+  if [ "$count" -eq 0 ]; then
+    gum style --foreground 3 "No servers currently registered."
+    echo ""
+    gum input --placeholder "Press Enter to return to menu..." >/dev/null
+    return 0
+  fi
+
+  local choices
+  choices=$(echo "$servers" | jq -r '.[] | "\(.id) [\(.name // .id)] - \(.host)"')
+
+  gum style --bold "Select a server to view details:"
+  local selected
+  selected=$(echo "$choices" | gum choose) || return 0
+  local server_id
+  server_id=$(echo "$selected" | awk '{print $1}')
+
+  local s
+  s=$(echo "$servers" | jq -c --arg id "$server_id" '.[] | select(.id == $id)')
+
+  if [ -z "$s" ]; then
+    gum style --foreground 1 "Server not found."
+    return 0
+  fi
+
+  clear
+  show_header
+  local name host port status init_sys last_err
+  name=$(echo "$s" | jq -r '.name // .id')
+  host=$(echo "$s" | jq -r '.host')
+  port=$(echo "$s" | jq -r '.port // 22')
+  status=$(echo "$s" | jq -r '.status')
+  init_sys=$(echo "$s" | jq -r '.init_system // "unknown"')
+  last_err=$(echo "$s" | jq -r '.last_error // ""')
+
+  gum style --bold --foreground 6 "Server: $name ($server_id)"
+  echo "Host:        $host:$port"
+  echo "Status:      $status"
+  echo "Init System: $init_sys"
+
+  if [ -n "$last_err" ] && [ "$last_err" != "null" ]; then
+    gum style --foreground 1 "Last Error:  $last_err"
+  fi
+
+  echo ""
+  gum style --bold "Host Metrics:"
+  local cpu_pct mem_pct disk_pct
+  cpu_pct=$(echo "$s" | jq -r '.metrics.cpu.used_percent // empty')
+  mem_pct=$(echo "$s" | jq -r '.metrics.memory.used_percent // empty')
+  disk_pct=$(echo "$s" | jq -r '.metrics.disk.used_percent // empty')
+
+  [ -n "$cpu_pct" ] && echo "  CPU:    ${cpu_pct}%" || echo "  CPU:    -"
+  [ -n "$mem_pct" ] && echo "  Memory: ${mem_pct}%" || echo "  Memory: -"
+  [ -n "$disk_pct" ] && echo "  Disk:   ${disk_pct}%" || echo "  Disk:   -"
+
+  echo ""
+  local checks_count
+  checks_count=$(echo "$s" | jq '.checks | length // 0')
+  gum style --bold "Service Checks ($checks_count):"
+  if [ "$checks_count" -gt 0 ]; then
+    echo "$s" | jq -r '.checks[] | "  - [\(.type)] \(.name): \(.status // "pending")"'
+  else
+    echo "  (none configured)"
+  fi
+
+  echo ""
+  gum input --placeholder "Press Enter to return to menu..." >/dev/null
+}
+
+action_add_server() {
+  show_header
+  gum style --bold "Add New Server Target"
+  echo ""
+
+  local host
+  host=$(gum input --placeholder "Hostname or IP address (required)") || return 0
+  if [ -z "$host" ]; then
+    gum style --foreground 1 "Error: Host is required."
+    sleep 1.5
+    return 0
+  fi
+
+  local name
+  name=$(gum input --placeholder "Display Name (default: host)") || return 0
+  [ -z "$name" ] && name="$host"
+
+  local user
+  user=$(gum input --placeholder "SSH User (e.g. root or deploy)") || return 0
+
+  local port
+  port=$(gum input --placeholder "SSH Port (default: 22)" --value "22") || return 0
+  [ -z "$port" ] && port="22"
+
+  local proxy_jump
+  proxy_jump=$(gum input --placeholder "ProxyJump / Bastion (optional)") || return 0
+
+  echo ""
+  gum style --bold "Summary:"
+  echo "  Name:       $name"
+  echo "  Host:       $host"
+  echo "  Port:       $port"
+  echo "  User:       ${user:-(current)}"
+  echo "  ProxyJump:  ${proxy_jump:-(none)}"
+  echo ""
+
+  if ! gum confirm "Add this server to monitoring?"; then
+    gum style --foreground 3 "Aborted."
+    sleep 1
+    return 0
+  fi
+
+  local id
+  id=$(echo "$name" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g' | sed -E 's/^-|-$//g')
+  [ -z "$id" ] && id="srv-$RANDOM"
+
+  local json_payload
+  json_payload=$(jq -n \
+    --arg cmd "add_server" \
+    --arg id "$id" \
+    --arg name "$name" \
+    --arg host "$host" \
+    --arg port "$port" \
+    --arg user "$user" \
+    --arg jump "$proxy_jump" \
+    '{
+      command: $cmd,
+      server: {
+        id: $id,
+        name: $name,
+        host: $host,
+        port: ($port | tonumber),
+        user: (if $user == "" then null else $user end),
+        proxy_jump: (if $jump == "" then null else $jump end),
+        checks: []
+      }
+    }')
+
+  local resp
+  resp=$(send_socket_cmd "$json_payload")
+
+  if echo "$resp" | jq -e '.status == "ok"' >/dev/null 2>&1; then
+    gum style --foreground 2 "Server '$name' ($id) added successfully."
+  else
+    local err
+    err=$(echo "$resp" | jq -r '.error // "unknown error"')
+    gum style --foreground 1 "Failed to add server: $err"
+  fi
+
+  sleep 2
+}
+
+action_remove_server() {
+  show_header
+  local servers
+  servers=$(fetch_servers_json)
+  local count
+  count=$(echo "$servers" | jq 'length')
+
+  if [ "$count" -eq 0 ]; then
+    gum style --foreground 3 "No servers available to remove."
+    sleep 1.5
+    return 0
+  fi
+
+  gum style --bold "Select a server to remove:"
+  local choices
+  choices=$(echo "$servers" | jq -r '.[] | "\(.id) [\(.name // .id)] - \(.host)"')
+
+  local selected
+  selected=$(echo "$choices" | gum choose) || return 0
+  local server_id
+  server_id=$(echo "$selected" | awk '{print $1}')
+
+  if ! gum confirm "Are you sure you want to remove '$server_id' from monitoring?"; then
+    gum style --foreground 3 "Removal canceled."
+    sleep 1
+    return 0
+  fi
+
+  local json_payload
+  json_payload=$(jq -n --arg cmd "remove_server" --arg id "$server_id" '{command: $cmd, server_id: $id}')
+  local resp
+  resp=$(send_socket_cmd "$json_payload")
+
+  if echo "$resp" | jq -e '.status == "ok"' >/dev/null 2>&1; then
+    gum style --foreground 2 "Server '$server_id' removed successfully."
+  else
+    local err
+    err=$(echo "$resp" | jq -r '.error // "unknown error"')
+    gum style --foreground 1 "Failed to remove server: $err"
+  fi
+
+  sleep 2
+}
+
+action_view_logs() {
+  show_header
+  local servers
+  servers=$(fetch_servers_json)
+  local count
+  count=$(echo "$servers" | jq 'length')
+
+  if [ "$count" -eq 0 ]; then
+    gum style --foreground 3 "No servers available."
+    sleep 1.5
+    return 0
+  fi
+
+  gum style --bold "Select a server for log inspection:"
+  local choices
+  choices=$(echo "$servers" | jq -r '.[] | "\(.id) [\(.name // .id)]"')
+
+  local selected
+  selected=$(echo "$choices" | gum choose) || return 0
+  local server_id
+  server_id=$(echo "$selected" | awk '{print $1}')
+
+  gum style --bold "Select number of log lines to tail:"
+  local lines
+  lines=$(gum choose "50" "100" "200") || return 0
+
+  local json_payload
+  json_payload=$(jq -n --arg cmd "get_logs" --arg id "$server_id" --arg lines "$lines" \
+    '{command: $cmd, server_id: $id, lines: ($lines | tonumber)}')
+
+  local resp
+  resp=$(send_socket_cmd "$json_payload")
+  local log_output
+  log_output=$(echo "$resp" | jq -r '.log // .error // "No output returned"')
+
+  echo "$log_output" | gum pager
+}
+
+main() {
+  check_dependencies
+
+  while true; do
+    if ! is_daemon_alive; then
+      show_header
+      gum style --foreground 1 "Daemon is not responding at $SOCKET_PATH"
+      echo ""
+      echo "To start the daemon in this terminal or in background:"
+      echo "  mix run --no-halt"
+      echo ""
+      local choice
+      choice=$(gum choose "Retry Connection" "Exit") || exit 0
+      if [ "$choice" = "Exit" ]; then
+        exit 0
+      fi
+      continue
+    fi
+
+    show_header
+    local action
+    action=$(gum choose \
+      "List Servers" \
+      "Server Details & Metrics" \
+      "Add Server" \
+      "Remove Server" \
+      "View Server Logs" \
+      "Exit") || exit 0
+
+    case "$action" in
+      "List Servers")            action_list_servers ;;
+      "Server Details & Metrics") action_server_details ;;
+      "Add Server")              action_add_server ;;
+      "Remove Server")           action_remove_server ;;
+      "View Server Logs")        action_view_logs ;;
+      "Exit")                    clear; exit 0 ;;
+    esac
+  done
+}
+
+main "$@"
