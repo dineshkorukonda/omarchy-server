@@ -32,14 +32,48 @@ defmodule OmarchyServer.ServerManager do
   Synchronizes running workers with a Config struct or list of Server structs.
   Starts workers for new servers and stops workers for removed servers.
   """
-  def sync_config(manager \\ @name, config_or_servers, opts \\ []) do
+  def sync_config(config_or_servers)
+      when is_list(config_or_servers) or is_struct(config_or_servers, Config) do
+    sync_config(@name, config_or_servers, [])
+  end
+
+  def sync_config(manager, config_or_servers)
+      when (is_pid(manager) or is_atom(manager)) and
+             (is_list(config_or_servers) or is_struct(config_or_servers, Config)) do
+    sync_config(manager, config_or_servers, [])
+  end
+
+  def sync_config(config_or_servers, opts)
+      when is_list(opts) and
+             (is_list(config_or_servers) or is_struct(config_or_servers, Config)) do
+    sync_config(@name, config_or_servers, opts)
+  end
+
+  def sync_config(manager, config_or_servers, opts) do
     GenServer.call(manager, {:sync_config, config_or_servers, opts})
   end
 
   @doc """
   Loads config from a YAML file and synchronizes running workers.
   """
-  def sync_file(manager \\ @name, path, opts \\ []) do
+  def sync_file do
+    sync_file(@name, nil, [])
+  end
+
+  def sync_file(path) when is_binary(path) do
+    sync_file(@name, path, [])
+  end
+
+  def sync_file(manager, path)
+      when (is_pid(manager) or is_atom(manager)) and (is_binary(path) or is_nil(path)) do
+    sync_file(manager, path, [])
+  end
+
+  def sync_file(path, opts) when is_binary(path) and is_list(opts) do
+    sync_file(@name, path, opts)
+  end
+
+  def sync_file(manager, path, opts) do
     GenServer.call(manager, {:sync_file, path, opts})
   end
 
@@ -155,9 +189,11 @@ defmodule OmarchyServer.ServerManager do
   # Internal Logic
 
   defp do_sync_file(state, path, opts) do
-    case Config.load_file(path) do
+    target_path = path || state.config_path || "servers.yaml"
+
+    case Config.load_file(target_path) do
       {:ok, config} ->
-        do_sync_config(%{state | config_path: path}, config, opts)
+        do_sync_config(%{state | config_path: target_path}, config, opts)
 
       {:error, reason} ->
         {:error, reason}
