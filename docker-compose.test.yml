@@ -1,0 +1,9 @@
+services:
+  ssh-target:
+    build:
+      context: test/fixtures/docker/ssh-target
+      dockerfile: Dockerfile
+    container_name: omarchy-test-ssh-target
+    ports:
+      - "2222:22"
+    restart: unless-stopped
