@@ -15,6 +15,8 @@ defmodule OmarchyServer.SocketAPI do
   alias OmarchyServer.ServerManager
   alias OmarchyServer.ServerWorker
   alias OmarchyServer.ServiceAction
+  alias OmarchyServer.SSH.PTYSession
+  alias OmarchyServer.TerminalSupervisor
 
   @default_socket_path "/tmp/omarchy_server.sock"
   @name __MODULE__
@@ -100,18 +102,124 @@ defmodule OmarchyServer.SocketAPI do
   defp handle_client(client_socket) do
     case :gen_tcp.recv(client_socket, 0, 500) do
       {:ok, data} ->
-        response = process_request(data)
-        send_json_response(client_socket, response)
+        case check_terminal_request(data) do
+          {:terminal, server_id, opts} ->
+            handle_terminal_bridge(client_socket, server_id, opts)
+
+          :normal ->
+            response = process_request(data)
+            send_json_response(client_socket, response)
+            :gen_tcp.close(client_socket)
+        end
 
       {:error, :timeout} ->
         response = get_all_servers_response()
         send_json_response(client_socket, response)
+        :gen_tcp.close(client_socket)
 
       {:error, _reason} ->
-        :ok
+        :gen_tcp.close(client_socket)
     end
+  end
 
-    :gen_tcp.close(client_socket)
+  defp check_terminal_request(data) do
+    trimmed = String.trim(data)
+
+    if String.starts_with?(trimmed, "{") do
+      case decode_json(trimmed) do
+        {:ok, %{"command" => "open_terminal", "server_id" => server_id} = cmd} ->
+          cols = Map.get(cmd, "cols", 80)
+          rows = Map.get(cmd, "rows", 24)
+          term = Map.get(cmd, "term", "xterm-256color")
+          {:terminal, server_id, [cols: cols, rows: rows, term: term]}
+
+        _ ->
+          :normal
+      end
+    else
+      :normal
+    end
+  end
+
+  defp handle_terminal_bridge(socket, server_id, opts) do
+    case ServerWorker.whereis(server_id) do
+      pid when is_pid(pid) ->
+        server = ServerWorker.get_server_config(pid)
+
+        case TerminalSupervisor.start_session(server, [client_pid: self()] ++ opts) do
+          {:ok, session_pid} ->
+            receive do
+              {:pty_connected, ^session_pid} ->
+                send_json_response(socket, %{status: "ok", session: "connected"})
+                :inet.setopts(socket, active: true)
+                terminal_bridge_loop(socket, session_pid)
+
+              {:pty_error, reason} ->
+                send_json_response(socket, %{status: "error", error: inspect(reason)})
+                :gen_tcp.close(socket)
+            after
+              15_000 ->
+                send_json_response(socket, %{status: "error", error: "pty connection timeout"})
+                :gen_tcp.close(socket)
+            end
+
+          {:error, reason} ->
+            send_json_response(socket, %{status: "error", error: inspect(reason)})
+            :gen_tcp.close(socket)
+        end
+
+      nil ->
+        send_json_response(socket, %{
+          status: "error",
+          error: "server worker not found: #{server_id}"
+        })
+
+        :gen_tcp.close(socket)
+    end
+  end
+
+  defp terminal_bridge_loop(socket, session_pid) do
+    receive do
+      {:tcp, ^socket, data} ->
+        trimmed = String.trim(data)
+
+        if String.starts_with?(trimmed, "{\"command\":\"resize_pty\"") or
+             String.starts_with?(trimmed, "{\"command\": \"resize_pty\"") do
+          case decode_json(trimmed) do
+            {:ok, %{"command" => "resize_pty", "cols" => cols, "rows" => rows}} ->
+              PTYSession.resize(session_pid, cols, rows)
+
+            _ ->
+              PTYSession.send_input(session_pid, data)
+          end
+        else
+          PTYSession.send_input(session_pid, data)
+        end
+
+        terminal_bridge_loop(socket, session_pid)
+
+      {:pty_data, ^session_pid, raw_bytes} ->
+        :gen_tcp.send(socket, raw_bytes)
+        terminal_bridge_loop(socket, session_pid)
+
+      {:pty_eof, ^session_pid} ->
+        :gen_tcp.close(socket)
+
+      {:pty_exit, ^session_pid, _code} ->
+        :gen_tcp.close(socket)
+
+      {:pty_closed, ^session_pid} ->
+        :gen_tcp.close(socket)
+
+      {:tcp_closed, ^socket} ->
+        PTYSession.close(session_pid)
+
+      {:tcp_error, ^socket, _reason} ->
+        PTYSession.close(session_pid)
+
+      _other ->
+        terminal_bridge_loop(socket, session_pid)
+    end
   end
 
   defp process_request(data) when is_binary(data) do
