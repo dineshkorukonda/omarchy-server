@@ -232,9 +232,10 @@ defmodule OmarchyServer.SocketAPI do
       status: to_string(server.status),
       metrics: server[:metrics] || %{},
       checks: server[:checks] || %{},
-      init_system: server[:init_system] && to_string(server[:init_system]),
-      last_error: server[:last_error] && inspect(server[:last_error]),
-      updated_at: server[:updated_at] && DateTime.to_iso8601(server[:updated_at])
+      init_system: if(server[:init_system], do: to_string(server[:init_system]), else: :null),
+      last_error: if(server[:last_error], do: inspect(server[:last_error]), else: :null),
+      updated_at:
+        if(server[:updated_at], do: DateTime.to_iso8601(server[:updated_at]), else: :null)
     }
   end
 

@@ -53,6 +53,7 @@ defmodule OmarchyServer.Notifier do
   # Maps a state transition to a notification or :skip.
   defp classify_transition(:connecting, :reconnecting), do: :skip
   defp classify_transition(:reconnecting, :reconnecting), do: :skip
+
   defp classify_transition(_old, :reconnecting) do
     {:notify, "critical", "omarchy-server: server offline",
      "A monitored server is unreachable and reconnecting."}

@@ -23,6 +23,12 @@ Panel {
   property string selectedServerId: ""
   readonly property var activeServer: Model.findServer(daemonStatus.servers, selectedServerId)
 
+  onActiveServerChanged: {
+    if (root.selectedServerId !== "" && !root.activeServer) {
+      root.selectedServerId = ""
+    }
+  }
+
   readonly property bool hasServers: daemonStatus.count > 0
   readonly property string worstStatusState: daemonStatus.worstState
 
@@ -225,9 +231,10 @@ Panel {
   }
 
   function refresh() {
-    if (!socketReader.running) {
-      socketReader.running = true
+    if (socketReader.running) {
+      socketReader.running = false
     }
+    socketReader.running = true
   }
 
   BarIconButton {
@@ -659,10 +666,54 @@ Panel {
             }
 
             Text {
-              text: root.activeServer ? (root.activeServer.host + " • Init: " + (root.activeServer.init_system || "unknown")) : ""
+              text: {
+                if (!root.activeServer) return ""
+                var s = root.activeServer
+                var initStr = (s.status === "reconnecting" || s.status === "connecting")
+                  ? "connecting..."
+                  : (s.init_system && s.init_system !== "nil" ? s.init_system : "unknown")
+                return s.host + " • Init: " + initStr
+              }
               color: root.dim
               font.family: root.fontFamily
               font.pixelSize: Style.font.caption
+            }
+          }
+
+          // Connection status alert banner
+          Rectangle {
+            visible: root.activeServer && (root.activeServer.status === "reconnecting" || root.activeServer.status === "error" || (root.activeServer.last_error && root.activeServer.last_error !== "null" && root.activeServer.last_error !== "nil"))
+            Layout.fillWidth: true
+            radius: 6
+            color: Qt.rgba(239, 68, 68, 0.12)
+            border.color: Qt.rgba(239, 68, 68, 0.35)
+            border.width: 1
+            implicitHeight: errCol.implicitHeight + Style.space(12)
+
+            ColumnLayout {
+              id: errCol
+              anchors.fill: parent
+              anchors.margins: Style.space(8)
+              spacing: Style.space(2)
+
+              Text {
+                text: "SSH connection failed" + (root.activeServer && root.activeServer.last_error && root.activeServer.last_error !== "null" && root.activeServer.last_error !== "nil" ? ": " + root.activeServer.last_error : "")
+                color: root.urgent
+                font.family: root.fontFamily
+                font.pixelSize: Style.fontPx(11 / 12.0)
+                font.bold: true
+                wrapMode: Text.Wrap
+                Layout.fillWidth: true
+              }
+
+              Text {
+                text: "Ensure your SSH key (~/.ssh/id_ed25519.pub) is authorized on the remote host."
+                color: root.dim
+                font.family: root.fontFamily
+                font.pixelSize: Style.fontPx(10 / 12.0)
+                wrapMode: Text.Wrap
+                Layout.fillWidth: true
+              }
             }
           }
 
@@ -1040,12 +1091,20 @@ Panel {
       onConfirmed: {
         root.confirmVisible = false
         if (root.pendingActionCmd !== "") {
-          root.sendAction(root.pendingActionCmd)
+          var cmdStr = root.pendingActionCmd
+          root.sendAction(cmdStr)
           root.pendingActionCmd = ""
+          try {
+            var parsed = JSON.parse(cmdStr)
+            if (parsed && parsed.command === "remove_server") {
+              root.selectedServerId = ""
+            }
+          } catch (e) {}
+          root.refresh()
           // Refresh server state after a short delay to pick up the new status
           Qt.callLater(function() {
             Qt.createQmlObject(
-              'import QtQuick; Timer { interval: 3000; running: true; repeat: false; onTriggered: { destroy(); root.refresh() } }',
+              'import QtQuick; Timer { interval: 800; running: true; repeat: false; onTriggered: { destroy(); root.refresh() } }',
               root
             )
           })
