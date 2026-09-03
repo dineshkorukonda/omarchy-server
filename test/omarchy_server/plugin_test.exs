@@ -174,5 +174,44 @@ defmodule OmarchyServer.PluginTest do
         assert result["servicesCount"] == 2
       end
     end
+
+    test "buildSshCommand assembles ssh argv from server object" do
+      node_script = """
+      const fs = require('fs');
+      const vm = require('vm');
+      const code = fs.readFileSync('#{@model_path}', 'utf8');
+      const context = {};
+      vm.createContext(context);
+      vm.runInContext(code, context);
+
+      const simple = context.buildSshCommand({ host: 'example.com', user: 'alice', port: 22 });
+      const withProxy = context.buildSshCommand({ host: 'internal.host', user: 'bob', port: 2222, proxy_jump: 'bastion.example.com' });
+      const minimal = context.buildSshCommand({ host: '10.0.0.1' });
+
+      console.log(JSON.stringify({ simple, withProxy, minimal }));
+      """
+
+      node = System.find_executable("node")
+
+      if node do
+        {output, 0} = System.cmd(node, ["-e", node_script])
+        {:ok, result} = :json.decode(String.trim(output)) |> then(&{:ok, &1})
+
+        assert result["simple"] == ["ssh", "-l", "alice", "example.com"]
+
+        assert result["withProxy"] == [
+                 "ssh",
+                 "-J",
+                 "bastion.example.com",
+                 "-l",
+                 "bob",
+                 "-p",
+                 "2222",
+                 "internal.host"
+               ]
+
+        assert result["minimal"] == ["ssh", "10.0.0.1"]
+      end
+    end
   end
 end

@@ -145,6 +145,49 @@ Panel {
     logSocket.running = true
   }
 
+  // Process for spawning a terminal emulator with SSH to the active server
+  Process {
+    id: sshTermProcess
+    running: false
+    onExited: { running = false }
+  }
+
+  function openSshTerminal(server) {
+    if (!server) return
+
+    var sshArgs = []
+
+    if (server.proxy_jump) {
+      sshArgs = sshArgs.concat(["-J", server.proxy_jump])
+    }
+
+    if (server.user) {
+      sshArgs = sshArgs.concat(["-l", server.user])
+    }
+
+    if (server.port && server.port !== 22) {
+      sshArgs = sshArgs.concat(["-p", String(server.port)])
+    }
+
+    sshArgs.push(server.host)
+
+    // Try terminal emulators in preference order: foot, kitty, xterm
+    var terminals = [
+      { name: "foot", args: ["foot", "ssh"].concat(sshArgs) },
+      { name: "kitty", args: ["kitty", "ssh"].concat(sshArgs) },
+      { name: "xterm", args: ["xterm", "-e", "ssh"].concat(sshArgs) }
+    ]
+
+    // Use the first available terminal
+    for (var i = 0; i < terminals.length; i++) {
+      var t = terminals[i]
+      sshTermProcess.command = t.args
+      sshTermProcess.running = true
+      root.close()
+      return
+    }
+  }
+
   Timer {
     id: pollTimer
     interval: root.refreshIntervalSec * 1000
@@ -505,6 +548,32 @@ Panel {
                 font.family: root.fontFamily
                 font.pixelSize: Style.fontSize(10)
                 font.bold: true
+              }
+            }
+
+            // Open SSH button
+            Rectangle {
+              width: sshLabel.implicitWidth + Style.space(12)
+              height: 24
+              radius: 4
+              color: sshMouse.containsMouse ? Qt.rgba(255, 255, 255, 0.14) : Qt.rgba(255, 255, 255, 0.06)
+
+              Text {
+                id: sshLabel
+                anchors.centerIn: parent
+                text: "Open SSH"
+                color: root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.fontSize(10)
+                font.bold: true
+              }
+
+              MouseArea {
+                id: sshMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.openSshTerminal(root.activeServer)
               }
             }
           }
