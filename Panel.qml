@@ -102,6 +102,49 @@ Panel {
     root.confirmVisible = true
   }
 
+  // Log viewer state
+  property bool logViewVisible: false
+  property string logContent: ""
+  property bool logBusy: false
+  property int logLines: 50
+  property string logUnitFilter: ""
+
+  // Process for fetching logs from the daemon
+  Process {
+    id: logSocket
+    running: false
+
+    stdout: SplitParser {
+      splitMarker: "\n"
+      onRead: function(data) {
+        if (data && data.trim().length > 0) {
+          try {
+            var parsed = JSON.parse(data.trim())
+            if (parsed && parsed.log !== undefined) {
+              root.logContent = parsed.log || "(no output)"
+            }
+          } catch (e) {
+            root.logContent = data.trim()
+          }
+          root.logBusy = false
+        }
+      }
+    }
+
+    onExited: function() {
+      root.logBusy = false
+    }
+  }
+
+  function requestLogs(serverId, lines, unit) {
+    var cmd = Model.buildGetLogsCmd(serverId, lines || 50, unit || undefined)
+    logSocket.command = ["sh", "-c",
+      "echo '" + cmd.replace(/'/g, "'\\''") + "' | nc -U " + root.socketPath]
+    root.logBusy = true
+    root.logContent = ""
+    logSocket.running = true
+  }
+
   Timer {
     id: pollTimer
     interval: root.refreshIntervalSec * 1000
@@ -732,6 +775,110 @@ Panel {
             color: root.dim
             font.family: root.fontFamily
             font.pixelSize: Style.font.caption
+          }
+
+          PanelSeparator { Layout.fillWidth: true }
+
+          // Log viewer section
+          RowLayout {
+            Layout.fillWidth: true
+
+            PanelSectionHeader {
+              text: "LOGS"
+              foreground: root.foreground
+              fontFamily: root.fontFamily
+            }
+
+            Item { Layout.fillWidth: true }
+
+            // Line count selector
+            Repeater {
+              model: [50, 100, 200]
+
+              Rectangle {
+                required property int modelData
+                width: lineCountLabel.implicitWidth + Style.space(8)
+                height: 20
+                radius: 3
+                color: root.logLines === modelData
+                  ? Qt.rgba(255, 255, 255, 0.12)
+                  : Qt.rgba(255, 255, 255, 0.04)
+
+                Text {
+                  id: lineCountLabel
+                  anchors.centerIn: parent
+                  text: parent.modelData
+                  color: root.logLines === parent.modelData ? root.foreground : root.dim
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.fontSize(9)
+                  font.bold: true
+                }
+
+                MouseArea {
+                  anchors.fill: parent
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: root.logLines = parent.modelData
+                }
+              }
+            }
+
+            Rectangle {
+              width: viewLogsLabel.implicitWidth + Style.space(12)
+              height: 24
+              radius: 4
+              color: viewLogsMouse.containsMouse ? Qt.rgba(255, 255, 255, 0.14) : Qt.rgba(255, 255, 255, 0.06)
+
+              Text {
+                id: viewLogsLabel
+                anchors.centerIn: parent
+                text: root.logBusy ? "loading..." : "load logs"
+                color: root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.fontSize(10)
+                font.bold: true
+              }
+
+              MouseArea {
+                id: viewLogsMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                enabled: !root.logBusy && root.activeServer !== null
+                onClicked: {
+                  root.requestLogs(root.selectedServerId, root.logLines)
+                }
+              }
+            }
+          }
+
+          // Log output area
+          Rectangle {
+            visible: root.logContent !== "" || root.logBusy
+            Layout.fillWidth: true
+            implicitHeight: Math.min(logText.implicitHeight + Style.space(16), Style.space(200))
+            radius: Style.cornerRadius
+            color: Qt.rgba(0, 0, 0, 0.30)
+            clip: true
+
+            Flickable {
+              anchors.fill: parent
+              anchors.margins: Style.space(8)
+              contentWidth: width
+              contentHeight: logText.implicitHeight
+              clip: true
+              boundsBehavior: Flickable.StopAtBounds
+              ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+              Text {
+                id: logText
+                width: parent.width
+                text: root.logBusy ? "Fetching logs..." : root.logContent
+                color: root.logBusy ? root.dim : Qt.rgba(200, 255, 200, 0.85)
+                font.family: "monospace"
+                font.pixelSize: Style.fontSize(10)
+                wrapMode: Text.WrapAnywhere
+              }
+            }
           }
         }
       }
