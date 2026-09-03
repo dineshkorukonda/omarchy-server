@@ -91,4 +91,98 @@ defmodule OmarchyServer.ServiceActionTest do
       assert {:error, :not_connected} = GenServer.call(pid, {:exec_cmd, "echo hello"})
     end
   end
+
+  describe "run/4 and get_logs/3 with worker resolution" do
+    test "run/4 executes restart and stop on systemctl, docker, pm2" do
+      parent = self()
+
+      runner = fn
+        _server, :connect ->
+          {:ok, :mock_conn}
+
+        _server, {:exec, :mock_conn, cmd} ->
+          if not String.contains?(cmd, "softlevel") do
+            send(parent, {:exec_called, cmd})
+          end
+          {:ok, "Success\nexit_code:0", 0}
+
+        _server, {:close, :mock_conn} ->
+          :ok
+
+        _server, {:poll, :mock_conn, _checks} ->
+          {:ok, %{metrics: %{}, checks: %{}}}
+      end
+
+      server = %OmarchyServer.Config.Server{
+        id: "svc-action-srv-1",
+        name: "Svc Action Srv",
+        host: "127.0.0.1",
+        user: "test",
+        checks: []
+      }
+
+      {:ok, _pid} =
+        OmarchyServer.ServerWorker.start_link(server,
+          runner: runner,
+          auto_connect: true
+        )
+
+      Process.sleep(50)
+
+      for type <- ["systemctl", "docker", "pm2"], action <- ["restart", "stop"] do
+        assert {:ok, out} = ServiceAction.run(server.id, "my-app", type, action)
+        assert out =~ "Success"
+        assert_received {:exec_called, cmd}
+        assert cmd =~ type
+        assert cmd =~ action
+      end
+    end
+
+    test "get_logs/3 retrieves logs with and without unit" do
+      parent = self()
+
+      runner = fn
+        _server, :connect ->
+          {:ok, :mock_conn}
+
+        _server, {:exec, :mock_conn, cmd} ->
+          if not String.contains?(cmd, "softlevel") do
+            send(parent, {:exec_logs, cmd})
+          end
+          {:ok, "systemd journal entries line 1\nline 2", 0}
+
+        _server, {:close, :mock_conn} ->
+          :ok
+
+        _server, {:poll, :mock_conn, _checks} ->
+          {:ok, %{metrics: %{}, checks: %{}}}
+      end
+
+      server = %OmarchyServer.Config.Server{
+        id: "svc-logs-srv-1",
+        name: "Logs Srv",
+        host: "127.0.0.1",
+        user: "test",
+        checks: []
+      }
+
+      {:ok, _pid} =
+        OmarchyServer.ServerWorker.start_link(server,
+          runner: runner,
+          auto_connect: true
+        )
+
+      Process.sleep(50)
+
+      assert {:ok, out} = ServiceAction.get_logs(server.id, 20)
+      assert out =~ "systemd journal"
+      assert_received {:exec_logs, cmd}
+      assert cmd =~ "journalctl -n 20"
+
+      assert {:ok, out2} = ServiceAction.get_logs(server.id, 30, "nginx.service")
+      assert out2 =~ "systemd journal"
+      assert_received {:exec_logs, cmd2}
+      assert cmd2 =~ "journalctl -u nginx.service -n 30"
+    end
+  end
 end

@@ -177,6 +177,46 @@ defmodule OmarchyServer.ServerWorkerTest do
       Process.sleep(150)
       assert ServerWorker.get_status(worker) == :polling
     end
+
+    test "poll_now triggers immediate poll" do
+      mock_runner = fn
+        _server, :connect -> {:ok, :fake_conn}
+        _server, {:exec, _conn, _cmd} -> {:ok, "systemd\n", 0}
+        _server, {:poll, _conn, _checks} -> {:ok, %{metrics: %{cpu: 50}, checks: %{}}}
+        _server, {:close, _conn} -> :ok
+      end
+
+      {:ok, worker} =
+        ServerWorker.start_link(@test_server,
+          runner: mock_runner,
+          name: nil,
+          poll_interval: 60_000
+        )
+
+      Process.sleep(50)
+      assert {:ok, :polling} = ServerWorker.poll_now(worker)
+      assert ServerWorker.get_state(worker).metrics == %{cpu: 50}
+    end
+
+    test "reconnect forces reconnection" do
+      mock_runner = fn
+        _server, :connect -> {:ok, :fake_conn}
+        _server, {:exec, _conn, _cmd} -> {:ok, "systemd\n", 0}
+        _server, {:poll, _conn, _checks} -> {:ok, %{metrics: %{}, checks: %{}}}
+        _server, {:close, _conn} -> :ok
+      end
+
+      {:ok, worker} =
+        ServerWorker.start_link(@test_server,
+          runner: mock_runner,
+          name: nil,
+          poll_interval: 60_000
+        )
+
+      Process.sleep(50)
+      assert :ok = ServerWorker.reconnect(worker)
+      assert ServerWorker.get_status(worker) == :polling
+    end
   end
 
   describe "supervisor isolation" do

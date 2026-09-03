@@ -90,5 +90,66 @@ defmodule OmarchyServer.SocketAPITest do
       assert json["status"] == "ok"
       assert json["server"]["id"] == "socket-test-node"
     end
+
+    test "handles service_action command", %{socket_path: sock_path} do
+      {:ok, client} =
+        :gen_tcp.connect({:local, String.to_charlist(sock_path)}, 0, [
+          :binary,
+          :local,
+          active: false
+        ])
+
+      req =
+        ~s({"command": "service_action", "server_id": "socket-test-node", "service": "nginx", "type": "systemctl", "action": "restart"}\n)
+
+      assert :ok = :gen_tcp.send(client, req)
+      {:ok, data} = :gen_tcp.recv(client, 0, 1000)
+      :gen_tcp.close(client)
+
+      assert {:ok, json} = :json.decode(data) |> then(&{:ok, &1})
+      assert json["status"] == "ok"
+      assert json["service"] == "nginx"
+      assert json["action"] == "restart"
+    end
+
+    test "handles get_logs command", %{socket_path: sock_path} do
+      {:ok, client} =
+        :gen_tcp.connect({:local, String.to_charlist(sock_path)}, 0, [
+          :binary,
+          :local,
+          active: false
+        ])
+
+      req = ~s({"command": "get_logs", "server_id": "socket-test-node", "lines": 20}\n)
+
+      assert :ok = :gen_tcp.send(client, req)
+      {:ok, data} = :gen_tcp.recv(client, 0, 1000)
+      :gen_tcp.close(client)
+
+      assert {:ok, json} = :json.decode(data) |> then(&{:ok, &1})
+      assert json["status"] == "ok"
+      assert json["server_id"] == "socket-test-node"
+      assert json["lines"] == 20
+    end
+
+    test "handles reload command", %{socket_path: sock_path} do
+      {:ok, client} =
+        :gen_tcp.connect({:local, String.to_charlist(sock_path)}, 0, [
+          :binary,
+          :local,
+          active: false
+        ])
+
+      req = ~s({"command": "reload"}\n)
+
+      assert :ok = :gen_tcp.send(client, req)
+      {:ok, data} = :gen_tcp.recv(client, 0, 1000)
+      :gen_tcp.close(client)
+
+      assert {:ok, json} = :json.decode(data) |> then(&{:ok, &1})
+      # reload attempts file sync (which may succeed or return error if file doesn't exist, but responds valid JSON)
+      assert is_map(json)
+      assert Map.has_key?(json, "status")
+    end
   end
 end

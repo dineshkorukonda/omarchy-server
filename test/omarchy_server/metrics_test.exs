@@ -124,5 +124,13 @@ defmodule OmarchyServer.MetricsTest do
       runner = fn _cmd -> {:error, :timeout} end
       assert {:error, {:metrics_collection_failed, :timeout}} = Metrics.collect(runner)
     end
+
+    test "parse_combined handles missing sections" do
+      assert {:error, msg1} = Metrics.parse_combined("missing delimiter")
+      assert msg1 =~ "failed to locate free section"
+
+      assert {:error, msg2} = Metrics.parse_combined("header\n===OMARCHY_FREE===\nno df section")
+      assert msg2 =~ "failed to locate disk section"
+    end
   end
 end

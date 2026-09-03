@@ -116,6 +116,39 @@ defmodule OmarchyServer.ConfigTest do
       assert {:error, message} = Config.load_string(yaml)
       assert message =~ "check is missing a valid 'name'"
     end
+
+    test "fails fast when check type is missing or not a map" do
+      assert {:error, msg1} = OmarchyServer.Config.Check.from_map(%{"name" => "only_name"})
+      assert msg1 =~ "check is missing a valid 'type'"
+
+      assert {:error, msg2} = OmarchyServer.Config.Check.from_map(%{"foo" => "bar"})
+      assert msg2 =~ "check must specify 'type' and 'name'"
+
+      assert {:error, msg3} = OmarchyServer.Config.Check.from_map("not a map")
+      assert msg3 =~ "check must be a map"
+    end
+
+    test "Server.from_map edge cases" do
+      alias OmarchyServer.Config.Server
+
+      assert {:error, msg1} = Server.from_map("not a map")
+      assert msg1 =~ "server entry must be a map"
+
+      assert {:error, msg2} = Server.from_map(%{"host" => ""})
+      assert msg2 =~ "server host must be a non-empty string"
+
+      assert {:ok, s1} = Server.from_map(%{"host" => "example.com", "port" => "2222"})
+      assert s1.port == 2222
+
+      assert {:error, msg3} = Server.from_map(%{"host" => "example.com", "port" => :invalid})
+      assert msg3 =~ "invalid port number"
+
+      assert {:error, msg4} = Server.from_map(%{"host" => "example.com", "port" => "not_int"})
+      assert msg4 =~ "invalid port number"
+
+      assert {:error, msg5} = Server.from_map(%{"host" => "example.com", "checks" => "not_a_list"})
+      assert msg5 =~ "'checks' must be a list"
+    end
   end
 
   describe "load_string!/1" do
