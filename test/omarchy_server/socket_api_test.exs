@@ -205,5 +205,40 @@ defmodule OmarchyServer.SocketAPITest do
       assert {:ok, json3} = :json.decode(data3) |> then(&{:ok, &1})
       assert json3["status"] == "ok"
     end
+
+    test "handles poll_now and poll_all commands", %{socket_path: sock_path} do
+      {:ok, client1} =
+        :gen_tcp.connect({:local, String.to_charlist(sock_path)}, 0, [
+          :binary,
+          :local,
+          active: false
+        ])
+
+      poll_req = ~s({"command": "poll_now", "server_id": "socket-test-node"}\n)
+      assert :ok = :gen_tcp.send(client1, poll_req)
+      {:ok, data1} = :gen_tcp.recv(client1, 0, 1000)
+      :gen_tcp.close(client1)
+
+      assert {:ok, json1} = :json.decode(data1) |> then(&{:ok, &1})
+      assert json1["status"] == "ok"
+      assert json1["server_id"] == "socket-test-node"
+      assert json1["worker_status"] == "polling"
+
+      {:ok, client2} =
+        :gen_tcp.connect({:local, String.to_charlist(sock_path)}, 0, [
+          :binary,
+          :local,
+          active: false
+        ])
+
+      poll_all_req = ~s({"command": "poll_all"}\n)
+      assert :ok = :gen_tcp.send(client2, poll_all_req)
+      {:ok, data2} = :gen_tcp.recv(client2, 0, 1000)
+      :gen_tcp.close(client2)
+
+      assert {:ok, json2} = :json.decode(data2) |> then(&{:ok, &1})
+      assert json2["status"] == "ok"
+      assert is_list(json2["servers"])
+    end
   end
 end

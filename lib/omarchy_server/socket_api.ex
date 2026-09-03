@@ -13,6 +13,7 @@ defmodule OmarchyServer.SocketAPI do
   use GenServer
 
   alias OmarchyServer.ServerManager
+  alias OmarchyServer.ServerWorker
   alias OmarchyServer.ServiceAction
 
   @default_socket_path "/tmp/omarchy_server.sock"
@@ -194,6 +195,43 @@ defmodule OmarchyServer.SocketAPI do
               {:ok, result} -> %{status: "ok", result: result}
               {:error, reason} -> %{status: "error", error: inspect(reason)}
             end
+
+          {:ok, %{"command" => "poll_now", "server_id" => server_id}} ->
+            case ServerWorker.whereis(server_id) do
+              pid when is_pid(pid) ->
+                case ServerWorker.poll_now(pid) do
+                  {:ok, status} ->
+                    state = ServerWorker.get_state(pid)
+
+                    %{
+                      status: "ok",
+                      server_id: server_id,
+                      worker_status: to_string(status),
+                      server: serialize_server(state)
+                    }
+
+                  {:error, reason} ->
+                    %{status: "error", error: inspect(reason)}
+                end
+
+              nil ->
+                %{status: "error", error: "server worker not found: #{server_id}"}
+            end
+
+          {:ok, %{"command" => "poll_all"}} ->
+            workers = ServerManager.get_workers()
+
+            Enum.each(workers, fn {_id, pid} ->
+              try do
+                ServerWorker.poll_now(pid)
+              rescue
+                _ -> :ok
+              catch
+                :exit, _ -> :ok
+              end
+            end)
+
+            get_all_servers_response()
 
           _ ->
             get_all_servers_response()

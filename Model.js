@@ -161,23 +161,23 @@ function findServer(servers, serverId) {
   return null
 }
 
-function formatCpu(metrics) {
+function formatCpu(metrics, status) {
   if (!metrics || !metrics.cpu || typeof metrics.cpu.used_percent !== "number") {
-    return "–"
+    return status === "polling" ? "polling..." : "–"
   }
   return metrics.cpu.used_percent + "%"
 }
 
-function formatLoad(metrics) {
+function formatLoad(metrics, status) {
   if (!metrics || !metrics.cpu || typeof metrics.cpu.load_1 !== "number") {
-    return "–"
+    return status === "polling" ? "polling..." : "–"
   }
   return metrics.cpu.load_1 + ", " + metrics.cpu.load_5 + ", " + metrics.cpu.load_15
 }
 
-function formatMem(metrics) {
+function formatMem(metrics, status) {
   if (!metrics || !metrics.memory || typeof metrics.memory.total_mb !== "number") {
-    return "–"
+    return status === "polling" ? "polling..." : "–"
   }
   var used = metrics.memory.used_mb
   var total = metrics.memory.total_mb
@@ -185,9 +185,9 @@ function formatMem(metrics) {
   return used + " / " + total + " MB (" + pct + "%)"
 }
 
-function formatDisk(metrics) {
+function formatDisk(metrics, status) {
   if (!metrics || !metrics.disk || !metrics.disk.root) {
-    return "–"
+    return status === "polling" ? "polling..." : "–"
   }
   var root = metrics.disk.root
   return root.used + " / " + root.size + " (" + root.use_percent + "%)"
@@ -298,4 +298,34 @@ function buildRemoveServerCmd(serverId) {
     command: "remove_server",
     server_id: serverId
   })
+}
+
+function buildPollNowCmd(serverId) {
+  return JSON.stringify({
+    command: "poll_now",
+    server_id: serverId
+  })
+}
+
+function buildPollAllCmd() {
+  return JSON.stringify({
+    command: "poll_all"
+  })
+}
+
+function formatRelativeTime(isoString) {
+  if (!isoString) return ""
+  try {
+    var diffMs = Date.now() - new Date(isoString).getTime()
+    if (isNaN(diffMs) || diffMs < 0) return "just now"
+    var secs = Math.floor(diffMs / 1000)
+    if (secs < 5) return "just now"
+    if (secs < 60) return secs + "s ago"
+    var mins = Math.floor(secs / 60)
+    if (mins < 60) return mins + "m ago"
+    var hours = Math.floor(mins / 60)
+    return hours + "h ago"
+  } catch (e) {
+    return ""
+  }
 }
