@@ -21,11 +21,13 @@ Panel {
 
   property var daemonStatus: Model.defaultStatus()
   property string selectedServerId: ""
+  property bool terminalMode: false
   readonly property var activeServer: Model.findServer(daemonStatus.servers, selectedServerId)
 
   onActiveServerChanged: {
     if (root.selectedServerId !== "" && !root.activeServer) {
       root.selectedServerId = ""
+      root.terminalMode = false
     }
   }
 
@@ -658,6 +660,41 @@ Panel {
               }
             }
 
+            // Embedded Terminal toggle button
+            Rectangle {
+              width: termToggleLabel.implicitWidth + Style.space(12)
+              height: 24
+              radius: 4
+              color: root.terminalMode
+                ? Qt.rgba(56, 189, 248, 0.25)
+                : termToggleMouse.containsMouse
+                  ? Qt.rgba(255, 255, 255, 0.14)
+                  : Qt.rgba(255, 255, 255, 0.06)
+
+              Text {
+                id: termToggleLabel
+                anchors.centerIn: parent
+                text: root.terminalMode ? "Metrics" : "Terminal"
+                color: root.terminalMode ? root.accent : root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.fontPx(10 / 12.0)
+                font.bold: true
+              }
+
+              MouseArea {
+                id: termToggleMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                  root.terminalMode = !root.terminalMode
+                  if (root.terminalMode && root.activeServer) {
+                    embeddedTerminal.openSession(root.activeServer)
+                  }
+                }
+              }
+            }
+
             // Open SSH button
             Rectangle {
               width: sshLabel.implicitWidth + Style.space(12)
@@ -715,8 +752,27 @@ Panel {
             }
           }
 
+          // Embedded Terminal View (Phase 2)
+          TerminalView {
+            id: embeddedTerminal
+            visible: root.terminalMode
+            Layout.fillWidth: true
+            Layout.preferredHeight: 380
+            socketPath: root.socketPath
+            foreground: root.foreground
+            fontFamily: root.fontFamily
+            accent: root.accent
+
+            onTabClosed: function(closedId) {
+              if (embeddedTerminal.activeTabs.length === 0) {
+                root.terminalMode = false
+              }
+            }
+          }
+
           // Server Identity Hero
           ColumnLayout {
+            visible: !root.terminalMode
             spacing: Style.space(2)
 
             Text {
@@ -742,8 +798,14 @@ Panel {
             }
           }
 
-          // Connection status alert banner
-          Rectangle {
+          ColumnLayout {
+            id: metricsAndLogsCol
+            visible: !root.terminalMode
+            Layout.fillWidth: true
+            spacing: Style.space(8)
+
+            // Connection status alert banner
+            Rectangle {
             visible: root.activeServer && (root.activeServer.status === "reconnecting" || root.activeServer.status === "error" || (root.activeServer.last_error && root.activeServer.last_error !== "null" && root.activeServer.last_error !== "nil"))
             Layout.fillWidth: true
             radius: 6
@@ -1147,6 +1209,7 @@ Panel {
           }
         }
       }
+    }
     }
 
     // Confirm dialog overlay — sits above the KeyboardPanel popup

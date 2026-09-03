@@ -329,3 +329,47 @@ function formatRelativeTime(isoString) {
     return ""
   }
 }
+
+function buildOpenTerminalCmd(serverId, cols, rows) {
+  return JSON.stringify({
+    command: "open_terminal",
+    server_id: serverId,
+    cols: cols || 80,
+    rows: rows || 24
+  })
+}
+
+function buildResizePtyCmd(cols, rows) {
+  return JSON.stringify({
+    command: "resize_pty",
+    cols: cols || 80,
+    rows: rows || 24
+  })
+}
+
+function ansiToHtml(text) {
+  if (!text) return ""
+  var escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+
+  var colors = {
+    "30": "#1f2937", "31": "#ef4444", "32": "#22c55e", "33": "#eab308",
+    "34": "#3b82f6", "35": "#a855f7", "36": "#06b6d4", "37": "#e5e7eb",
+    "90": "#4b5563", "91": "#f87171", "92": "#4ade80", "93": "#fde047",
+    "94": "#60a5fa", "95": "#c084fc", "96": "#22d3ee", "97": "#ffffff"
+  }
+
+  escaped = escaped.replace(/\x1b\[0m/g, "</span>")
+
+  escaped = escaped.replace(/\x1b\[(3[0-7]|9[0-7])m/g, function(match, code) {
+    var c = colors[code] || "#e5e7eb"
+    return "<span style=\"color: " + c + "\">"
+  })
+
+  escaped = escaped.replace(/\x1b\[1m/g, "<span style=\"font-weight: bold\">")
+  escaped = escaped.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "")
+
+  return escaped
+}
