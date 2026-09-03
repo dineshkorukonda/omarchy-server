@@ -8,6 +8,7 @@ defmodule OmarchyServer.ServerWorker do
 
   alias OmarchyServer.Config.Server
   alias OmarchyServer.InitSystem
+  alias OmarchyServer.Notifier
   alias OmarchyServer.SSH
 
   @type status :: :connecting | :polling | :degraded | :reconnecting
@@ -233,6 +234,8 @@ defmodule OmarchyServer.ServerWorker do
   # Internal Logic
 
   defp do_connect(state) do
+    old_status = state.status
+
     case state.runner.(state.server, :connect) do
       {:ok, conn} ->
         init_system = probe_init_system(state.server, conn, state.runner)
@@ -248,24 +251,28 @@ defmodule OmarchyServer.ServerWorker do
         }
 
         schedule_poll(0)
-        new_state
+        maybe_notify_transition(new_state, old_status)
 
       {:error, reason} ->
         schedule_reconnect(state.reconnect_interval)
 
-        %{
+        new_state = %{
           state
           | status: :reconnecting,
             connection: nil,
             last_error: reason,
             updated_at: DateTime.utc_now()
         }
+
+        maybe_notify_transition(new_state, old_status)
     end
   end
 
   defp do_poll(%{status: :reconnecting} = state), do: state
 
   defp do_poll(state) do
+    old_status = state.status
+
     case state.runner.(state.server, {:poll, state.connection, state.server.checks}) do
       {:ok, %{metrics: metrics, checks: checks, degraded: degraded}} ->
         new_status = if degraded, do: :degraded, else: :polling
@@ -279,6 +286,7 @@ defmodule OmarchyServer.ServerWorker do
             last_error: nil,
             updated_at: DateTime.utc_now()
         }
+        |> maybe_notify_transition(old_status)
 
       {:ok, %{metrics: metrics, checks: checks}} ->
         %{
@@ -290,6 +298,7 @@ defmodule OmarchyServer.ServerWorker do
             last_error: nil,
             updated_at: DateTime.utc_now()
         }
+        |> maybe_notify_transition(old_status)
 
       {:degraded, reason, partial_data} ->
         %{
@@ -300,6 +309,7 @@ defmodule OmarchyServer.ServerWorker do
             last_error: reason,
             updated_at: DateTime.utc_now()
         }
+        |> maybe_notify_transition(old_status)
 
       {:error, :connection_lost} ->
         transition_to_reconnecting(state, :connection_lost)
@@ -320,11 +330,13 @@ defmodule OmarchyServer.ServerWorker do
               last_error: other_error,
               updated_at: DateTime.utc_now()
           }
+          |> maybe_notify_transition(old_status)
         end
     end
   end
 
   defp transition_to_reconnecting(state, reason) do
+    old_status = state.status
     close_connection(state)
     schedule_reconnect(state.reconnect_interval)
 
@@ -335,6 +347,7 @@ defmodule OmarchyServer.ServerWorker do
         last_error: reason,
         updated_at: DateTime.utc_now()
     }
+    |> maybe_notify_transition(old_status)
   end
 
   defp probe_init_system(server, conn, runner) do
@@ -399,5 +412,17 @@ defmodule OmarchyServer.ServerWorker do
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  # Fires a desktop notification if the status actually changed to a new severity level.
+  # Returns new_state unchanged — side-effecting only.
+  # Arg order: (new_state, old_status) so it works as a pipe target.
+  defp maybe_notify_transition(new_state, old_status) do
+    if old_status != new_state.status do
+      server_name = new_state.server.name || new_state.server.id
+      Notifier.notify_state_change(server_name, old_status, new_state.status)
+    end
+
+    new_state
   end
 end
