@@ -6,8 +6,9 @@ defmodule OmarchyServerTest do
     assert OmarchyServer.hello() == :world
   end
 
-  test "supervisor boots with no children" do
+  test "supervisor boots and dynamic supervisor starts with no children" do
     assert Process.whereis(OmarchyServer.Supervisor) != nil
-    assert Supervisor.which_children(OmarchyServer.Supervisor) == []
+    assert Process.whereis(OmarchyServer.ServerSupervisor) != nil
+    assert DynamicSupervisor.which_children(OmarchyServer.ServerSupervisor) == []
   end
 end
