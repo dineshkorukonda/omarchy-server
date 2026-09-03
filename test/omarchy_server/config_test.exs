@@ -1,0 +1,159 @@
+defmodule OmarchyServer.ConfigTest do
+  use ExUnit.Case, async: true
+
+  alias OmarchyServer.Config
+  alias OmarchyServer.Config.Check
+
+  @valid_yaml """
+  servers:
+    - id: prod-web-1
+      name: Production Web 1
+      host: 192.168.1.100
+      user: deploy
+      port: 2222
+      ProxyJump: jump.example.com
+      checks:
+        - type: systemctl
+          name: nginx
+        - type: docker
+          name: postgres
+        - type: pm2
+          name: api-worker
+    - host: backup.example.com
+  """
+
+  describe "load_string/1" do
+    test "parses full server configuration with ProxyJump, port, and checks" do
+      assert {:ok, %Config{servers: [server1, server2]}} = Config.load_string(@valid_yaml)
+
+      assert server1.id == "prod-web-1"
+      assert server1.name == "Production Web 1"
+      assert server1.host == "192.168.1.100"
+      assert server1.user == "deploy"
+      assert server1.port == 2222
+      assert server1.proxy_jump == "jump.example.com"
+      assert length(server1.checks) == 3
+
+      assert Enum.at(server1.checks, 0) == %Check{type: :systemctl, name: "nginx"}
+      assert Enum.at(server1.checks, 1) == %Check{type: :docker, name: "postgres"}
+      assert Enum.at(server1.checks, 2) == %Check{type: :pm2, name: "api-worker"}
+
+      # Minimal server defaults
+      assert server2.id == "backup.example.com"
+      assert server2.name == "backup.example.com"
+      assert server2.host == "backup.example.com"
+      assert server2.user == nil
+      assert server2.port == 22
+      assert server2.proxy_jump == nil
+      assert server2.checks == []
+    end
+
+    test "supports snake_case proxy_jump key" do
+      yaml = """
+      servers:
+        - host: 10.0.0.5
+          proxy_jump: bastion.internal
+      """
+
+      assert {:ok, %Config{servers: [server]}} = Config.load_string(yaml)
+      assert server.proxy_jump == "bastion.internal"
+    end
+
+    test "fails fast when YAML syntax is invalid" do
+      invalid_yaml = "servers: [unclosed list"
+      assert {:error, message} = Config.load_string(invalid_yaml)
+      assert message =~ "invalid YAML syntax"
+    end
+
+    test "fails fast when servers key is missing" do
+      yaml = "other_key: 123"
+      assert {:error, message} = Config.load_string(yaml)
+      assert message =~ "config must contain a 'servers' key"
+    end
+
+    test "fails fast when host is missing in server entry" do
+      yaml = """
+      servers:
+        - user: admin
+      """
+
+      assert {:error, message} = Config.load_string(yaml)
+      assert message =~ "missing required field 'host'"
+    end
+
+    test "fails fast when port is invalid" do
+      yaml = """
+      servers:
+        - host: example.com
+          port: 999999
+      """
+
+      assert {:error, message} = Config.load_string(yaml)
+      assert message =~ "invalid port number"
+    end
+
+    test "fails fast when check type is unsupported" do
+      yaml = """
+      servers:
+        - host: example.com
+          checks:
+            - type: unknown_runner
+              name: foo
+      """
+
+      assert {:error, message} = Config.load_string(yaml)
+      assert message =~ "unsupported check type"
+    end
+
+    test "fails fast when check name is missing" do
+      yaml = """
+      servers:
+        - host: example.com
+          checks:
+            - type: systemctl
+      """
+
+      assert {:error, message} = Config.load_string(yaml)
+      assert message =~ "check is missing a valid 'name'"
+    end
+  end
+
+  describe "load_string!/1" do
+    test "returns config struct on valid YAML" do
+      config = Config.load_string!(@valid_yaml)
+      assert %Config{} = config
+      assert length(config.servers) == 2
+    end
+
+    test "raises Config.Error on invalid YAML" do
+      assert_raise Config.Error, ~r/missing required field 'host'/, fn ->
+        Config.load_string!("servers:\n  - user: admin")
+      end
+    end
+  end
+
+  describe "load_file/1 and load_file!/1" do
+    test "reads and parses from file path" do
+      path =
+        Path.join(System.tmp_dir!(), "servers_test_#{System.unique_integer([:positive])}.yaml")
+
+      File.write!(path, @valid_yaml)
+
+      on_exit(fn -> File.rm(path) end)
+
+      assert {:ok, %Config{}} = Config.load_file(path)
+      assert %Config{} = Config.load_file!(path)
+    end
+
+    test "returns error for nonexistent file" do
+      assert {:error, message} = Config.load_file("/nonexistent/servers.yaml")
+      assert message =~ "failed to read config file"
+    end
+
+    test "load_file! raises Config.Error for nonexistent file" do
+      assert_raise Config.Error, ~r/failed to read config file/, fn ->
+        Config.load_file!("/nonexistent/servers.yaml")
+      end
+    end
+  end
+end

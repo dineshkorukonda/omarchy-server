@@ -21,6 +21,8 @@ defmodule OmarchyServer.MixProject do
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
-    []
+    [
+      {:yaml_elixir, "~> 2.12"}
+    ]
   end
 end
