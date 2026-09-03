@@ -41,6 +41,9 @@ Panel {
 
   readonly property string tipText: Model.tooltipText(root.daemonStatus)
 
+  implicitWidth: button.implicitWidth
+  implicitHeight: button.implicitHeight
+
   // Daemon communication process
   Process {
     id: socketReader
@@ -227,60 +230,32 @@ Panel {
     }
   }
 
-  // Bar Widget item representing the pill mounted in the Omarchy bar
-  Item {
-    id: barWidget
-    implicitWidth: pillLayout.implicitWidth + Style.space(8)
-    implicitHeight: bar ? bar.barSize : Style.bar.sizeHorizontal
-
-    RowLayout {
-      id: pillLayout
-      anchors.centerIn: parent
-      spacing: Style.space(4)
-
-      Rectangle {
-        id: statusDot
-        width: 8
-        height: 8
-        radius: 4
-        color: root.dotColor
-
-        Behavior on color {
-          ColorAnimation { duration: 180 }
-        }
-      }
-
-      Text {
-        id: serverCountText
-        text: Model.pillLabel(root.daemonStatus)
-        color: root.foreground
-        font.family: root.fontFamily
-        font.pixelSize: Style.fontSize(12)
-        font.bold: true
-      }
+  BarIconButton {
+    id: button
+    anchors.fill: parent
+    bar: root.bar
+    text: "󰒋"
+    tooltipText: root.tipText
+    onPressed: function(b) {
+      if (b === Qt.RightButton) root.refresh()
+      else root.toggle()
     }
 
-    MouseArea {
-      id: mouseArea
-      anchors.fill: parent
-      hoverEnabled: true
-      cursorShape: Qt.PointingHandCursor
+    // Status dot indicator overlaid on the button
+    Rectangle {
+      id: statusDot
+      width: 6
+      height: 6
+      radius: 3
+      color: root.dotColor
+      anchors.top: parent.top
+      anchors.right: parent.right
+      anchors.topMargin: Style.space(4)
+      anchors.rightMargin: Style.space(4)
+      visible: true
 
-      onEntered: {
-        if (root.bar && typeof root.bar.showTooltip === "function") {
-          root.bar.showTooltip(barWidget, root.tipText)
-        }
-      }
-
-      onExited: {
-        if (root.bar && typeof root.bar.hideTooltip === "function") {
-          root.bar.hideTooltip(barWidget)
-        }
-      }
-
-      onClicked: {
-        root.refresh()
-        root.toggle()
+      Behavior on color {
+        ColorAnimation { duration: 180 }
       }
     }
   }
@@ -288,7 +263,7 @@ Panel {
   // Popout Panel
   KeyboardPanel {
     id: panel
-    anchorItem: barWidget
+    anchorItem: button
     owner: root
     bar: root.bar
     open: root.opened
@@ -1042,209 +1017,125 @@ Panel {
     }
   }
 
-  // Confirm dialog overlay — sits above the KeyboardPanel popup
-  ConfirmDialog {
-    id: confirmDialog
-    anchors.fill: parent
-    opened: root.confirmVisible
-    message: root.confirmMessage
-    cancelText: "Cancel"
-    confirmText: "Confirm"
-    foreground: root.foreground
-    fontFamily: root.fontFamily
 
-    onCanceled: {
-      root.confirmVisible = false
-      root.pendingActionCmd = ""
-    }
-
-    onConfirmed: {
-      root.confirmVisible = false
-      if (root.pendingActionCmd !== "") {
-        root.sendAction(root.pendingActionCmd)
-        root.pendingActionCmd = ""
-        // Refresh server state after a short delay to pick up the new status
-        Qt.callLater(function() {
-          Qt.createQmlObject(
-            'import QtQuick; Timer { interval: 3000; running: true; repeat: false; onTriggered: { destroy(); root.refresh() } }',
-            root
-          )
-        })
-      }
-    }
-  }
-
-  // Add Server Dialog Overlay
-  Rectangle {
-    id: addServerOverlay
-    anchors.fill: parent
-    visible: root.addServerVisible
-    color: Qt.rgba(0, 0, 0, 0.70)
-    z: 100
-
-    // Click outside to dismiss
-    MouseArea {
+    ConfirmDialog {
+      id: confirmDialog
       anchors.fill: parent
-      onClicked: {
-        root.addServerVisible = false
+      opened: root.confirmVisible
+      message: root.confirmMessage
+      cancelText: "Cancel"
+      confirmText: "Confirm"
+      foreground: root.foreground
+      fontFamily: root.fontFamily
+
+      onCanceled: {
+        root.confirmVisible = false
+        root.pendingActionCmd = ""
+      }
+
+      onConfirmed: {
+        root.confirmVisible = false
+        if (root.pendingActionCmd !== "") {
+          root.sendAction(root.pendingActionCmd)
+          root.pendingActionCmd = ""
+          // Refresh server state after a short delay to pick up the new status
+          Qt.callLater(function() {
+            Qt.createQmlObject(
+              'import QtQuick; Timer { interval: 3000; running: true; repeat: false; onTriggered: { destroy(); root.refresh() } }',
+              root
+            )
+          })
+        }
       }
     }
 
+    // Add Server Dialog Overlay
     Rectangle {
-      id: addServerCard
-      width: Math.min(parent.width - Style.space(32), Style.space(380))
-      implicitHeight: addServerLayout.implicitHeight + Style.space(32)
-      anchors.centerIn: parent
-      radius: Style.cornerRadius
-      color: bar ? bar.barBackground : Color.background
-      border.color: Qt.rgba(255, 255, 255, 0.12)
-      border.width: 1
+      id: addServerOverlay
+      anchors.fill: parent
+      visible: root.addServerVisible
+      color: Qt.rgba(0, 0, 0, 0.70)
+      z: 100
 
-      // Prevent clicks inside card from dismissing
+      // Click outside to dismiss
       MouseArea {
         anchors.fill: parent
-        onClicked: {}
+        onClicked: {
+          root.addServerVisible = false
+        }
       }
 
-      ColumnLayout {
-        id: addServerLayout
-        anchors.fill: parent
-        anchors.margins: Style.space(16)
-        spacing: Style.space(10)
+      Rectangle {
+        id: addServerCard
+        width: Math.min(parent.width - Style.space(32), Style.space(380))
+        implicitHeight: addServerLayout.implicitHeight + Style.space(32)
+        anchors.centerIn: parent
+        radius: Style.cornerRadius
+        color: bar ? bar.barBackground : Color.background
+        border.color: Qt.rgba(255, 255, 255, 0.12)
+        border.width: 1
 
-        // Title
-        RowLayout {
-          Layout.fillWidth: true
-          Text {
-            text: "Add Server"
-            color: root.foreground
-            font.family: root.fontFamily
-            font.pixelSize: Style.font.title
-            font.bold: true
-          }
-          Item { Layout.fillWidth: true }
-          Rectangle {
-            width: 20
-            height: 20
-            radius: 4
-            color: closeMouse.containsMouse ? Qt.rgba(255, 255, 255, 0.15) : "transparent"
+        // Prevent clicks inside card from dismissing
+        MouseArea {
+          anchors.fill: parent
+          onClicked: {}
+        }
+
+        ColumnLayout {
+          id: addServerLayout
+          anchors.fill: parent
+          anchors.margins: Style.space(16)
+          spacing: Style.space(10)
+
+          // Title
+          RowLayout {
+            Layout.fillWidth: true
             Text {
-              anchors.centerIn: parent
-              text: "✕"
-              color: root.dim
-              font.pixelSize: Style.fontSize(10)
-            }
-            MouseArea {
-              id: closeMouse
-              anchors.fill: parent
-              hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
-              onClicked: { root.addServerVisible = false }
-            }
-          }
-        }
-
-        Text {
-          text: "Connects via SSH using keys in ~/.ssh."
-          color: root.dim
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.caption
-          wrapMode: Text.Wrap
-          Layout.fillWidth: true
-        }
-
-        PanelSeparator { Layout.fillWidth: true }
-
-        // Host / IP
-        ColumnLayout {
-          Layout.fillWidth: true
-          spacing: Style.space(2)
-          Text {
-            text: "Server Host / IP *"
-            color: root.foreground
-            font.family: root.fontFamily
-            font.pixelSize: Style.fontSize(11)
-            font.bold: true
-          }
-          Rectangle {
-            Layout.fillWidth: true
-            height: 32
-            radius: 6
-            color: Qt.rgba(255, 255, 255, 0.06)
-            border.color: hostInput.activeFocus ? root.accent : Qt.rgba(255, 255, 255, 0.12)
-            border.width: 1
-
-            TextInput {
-              id: hostInput
-              anchors.fill: parent
-              anchors.margins: Style.space(6)
+              text: "Add Server"
               color: root.foreground
               font.family: root.fontFamily
-              font.pixelSize: Style.font.bodySmall
-              verticalAlignment: TextInput.AlignVCenter
-              clip: true
+              font.pixelSize: Style.font.title
+              font.bold: true
+            }
+            Item { Layout.fillWidth: true }
+            Rectangle {
+              width: 20
+              height: 20
+              radius: 4
+              color: closeMouse.containsMouse ? Qt.rgba(255, 255, 255, 0.15) : "transparent"
               Text {
-                text: "e.g. 192.168.1.100 or myserver.com"
+                anchors.centerIn: parent
+                text: "✕"
                 color: root.dim
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.bodySmall
-                visible: !hostInput.text && !hostInput.activeFocus
-                anchors.verticalCenter: parent.verticalCenter
+                font.pixelSize: Style.fontSize(10)
+              }
+              MouseArea {
+                id: closeMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: { root.addServerVisible = false }
               }
             }
           }
-        }
 
-        // Server Display Name
-        ColumnLayout {
-          Layout.fillWidth: true
-          spacing: Style.space(2)
           Text {
-            text: "Display Name (optional)"
-            color: root.foreground
+            text: "Connects via SSH using keys in ~/.ssh."
+            color: root.dim
             font.family: root.fontFamily
-            font.pixelSize: Style.fontSize(11)
-            font.bold: true
-          }
-          Rectangle {
+            font.pixelSize: Style.font.caption
+            wrapMode: Text.Wrap
             Layout.fillWidth: true
-            height: 32
-            radius: 6
-            color: Qt.rgba(255, 255, 255, 0.06)
-            border.color: nameInput.activeFocus ? root.accent : Qt.rgba(255, 255, 255, 0.12)
-            border.width: 1
-
-            TextInput {
-              id: nameInput
-              anchors.fill: parent
-              anchors.margins: Style.space(6)
-              color: root.foreground
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.bodySmall
-              verticalAlignment: TextInput.AlignVCenter
-              clip: true
-              Text {
-                text: "e.g. Production Web"
-                color: root.dim
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.bodySmall
-                visible: !nameInput.text && !nameInput.activeFocus
-                anchors.verticalCenter: parent.verticalCenter
-              }
-            }
           }
-        }
 
-        // Row for User and Port
-        RowLayout {
-          Layout.fillWidth: true
-          spacing: Style.space(8)
+          PanelSeparator { Layout.fillWidth: true }
 
+          // Host / IP
           ColumnLayout {
             Layout.fillWidth: true
             spacing: Style.space(2)
             Text {
-              text: "SSH User"
+              text: "Server Host / IP *"
               color: root.foreground
               font.family: root.fontFamily
               font.pixelSize: Style.fontSize(11)
@@ -1255,11 +1146,11 @@ Panel {
               height: 32
               radius: 6
               color: Qt.rgba(255, 255, 255, 0.06)
-              border.color: userInput.activeFocus ? root.accent : Qt.rgba(255, 255, 255, 0.12)
+              border.color: hostInput.activeFocus ? root.accent : Qt.rgba(255, 255, 255, 0.12)
               border.width: 1
 
               TextInput {
-                id: userInput
+                id: hostInput
                 anchors.fill: parent
                 anchors.margins: Style.space(6)
                 color: root.foreground
@@ -1268,22 +1159,23 @@ Panel {
                 verticalAlignment: TextInput.AlignVCenter
                 clip: true
                 Text {
-                  text: "root / deploy"
+                  text: "e.g. 192.168.1.100 or myserver.com"
                   color: root.dim
                   font.family: root.fontFamily
                   font.pixelSize: Style.font.bodySmall
-                  visible: !userInput.text && !userInput.activeFocus
+                  visible: !hostInput.text && !hostInput.activeFocus
                   anchors.verticalCenter: parent.verticalCenter
                 }
               }
             }
           }
 
+          // Server Display Name
           ColumnLayout {
-            width: 80
+            Layout.fillWidth: true
             spacing: Style.space(2)
             Text {
-              text: "Port"
+              text: "Display Name (optional)"
               color: root.foreground
               font.family: root.fontFamily
               font.pixelSize: Style.fontSize(11)
@@ -1294,12 +1186,11 @@ Panel {
               height: 32
               radius: 6
               color: Qt.rgba(255, 255, 255, 0.06)
-              border.color: portInput.activeFocus ? root.accent : Qt.rgba(255, 255, 255, 0.12)
+              border.color: nameInput.activeFocus ? root.accent : Qt.rgba(255, 255, 255, 0.12)
               border.width: 1
 
               TextInput {
-                id: portInput
-                text: "22"
+                id: nameInput
                 anchors.fill: parent
                 anchors.margins: Style.space(6)
                 color: root.foreground
@@ -1307,140 +1198,225 @@ Panel {
                 font.pixelSize: Style.font.bodySmall
                 verticalAlignment: TextInput.AlignVCenter
                 clip: true
+                Text {
+                  text: "e.g. Production Web"
+                  color: root.dim
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.bodySmall
+                  visible: !nameInput.text && !nameInput.activeFocus
+                  anchors.verticalCenter: parent.verticalCenter
+                }
               }
             }
           }
-        }
 
-        // ProxyJump / Bastion (optional)
-        ColumnLayout {
-          Layout.fillWidth: true
-          spacing: Style.space(2)
-          Text {
-            text: "ProxyJump / Bastion (optional)"
-            color: root.foreground
-            font.family: root.fontFamily
-            font.pixelSize: Style.fontSize(11)
-            font.bold: true
-          }
-          Rectangle {
+          // Row for User and Port
+          RowLayout {
             Layout.fillWidth: true
-            height: 32
-            radius: 6
-            color: Qt.rgba(255, 255, 255, 0.06)
-            border.color: jumpInput.activeFocus ? root.accent : Qt.rgba(255, 255, 255, 0.12)
-            border.width: 1
+            spacing: Style.space(8)
 
-            TextInput {
-              id: jumpInput
-              anchors.fill: parent
-              anchors.margins: Style.space(6)
+            ColumnLayout {
+              Layout.fillWidth: true
+              spacing: Style.space(2)
+              Text {
+                text: "SSH User"
+                color: root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.fontSize(11)
+                font.bold: true
+              }
+              Rectangle {
+                Layout.fillWidth: true
+                height: 32
+                radius: 6
+                color: Qt.rgba(255, 255, 255, 0.06)
+                border.color: userInput.activeFocus ? root.accent : Qt.rgba(255, 255, 255, 0.12)
+                border.width: 1
+
+                TextInput {
+                  id: userInput
+                  anchors.fill: parent
+                  anchors.margins: Style.space(6)
+                  color: root.foreground
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.bodySmall
+                  verticalAlignment: TextInput.AlignVCenter
+                  clip: true
+                  Text {
+                    text: "root / deploy"
+                    color: root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.bodySmall
+                    visible: !userInput.text && !userInput.activeFocus
+                    anchors.verticalCenter: parent.verticalCenter
+                  }
+                }
+              }
+            }
+
+            ColumnLayout {
+              width: 80
+              spacing: Style.space(2)
+              Text {
+                text: "Port"
+                color: root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.fontSize(11)
+                font.bold: true
+              }
+              Rectangle {
+                Layout.fillWidth: true
+                height: 32
+                radius: 6
+                color: Qt.rgba(255, 255, 255, 0.06)
+                border.color: portInput.activeFocus ? root.accent : Qt.rgba(255, 255, 255, 0.12)
+                border.width: 1
+
+                TextInput {
+                  id: portInput
+                  text: "22"
+                  anchors.fill: parent
+                  anchors.margins: Style.space(6)
+                  color: root.foreground
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.bodySmall
+                  verticalAlignment: TextInput.AlignVCenter
+                  clip: true
+                }
+              }
+            }
+          }
+
+          // ProxyJump / Bastion (optional)
+          ColumnLayout {
+            Layout.fillWidth: true
+            spacing: Style.space(2)
+            Text {
+              text: "ProxyJump / Bastion (optional)"
               color: root.foreground
               font.family: root.fontFamily
-              font.pixelSize: Style.font.bodySmall
-              verticalAlignment: TextInput.AlignVCenter
-              clip: true
-              Text {
-                text: "e.g. jump.example.com"
-                color: root.dim
+              font.pixelSize: Style.fontSize(11)
+              font.bold: true
+            }
+            Rectangle {
+              Layout.fillWidth: true
+              height: 32
+              radius: 6
+              color: Qt.rgba(255, 255, 255, 0.06)
+              border.color: jumpInput.activeFocus ? root.accent : Qt.rgba(255, 255, 255, 0.12)
+              border.width: 1
+
+              TextInput {
+                id: jumpInput
+                anchors.fill: parent
+                anchors.margins: Style.space(6)
+                color: root.foreground
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.bodySmall
-                visible: !jumpInput.text && !jumpInput.activeFocus
-                anchors.verticalCenter: parent.verticalCenter
+                verticalAlignment: TextInput.AlignVCenter
+                clip: true
+                Text {
+                  text: "e.g. jump.example.com"
+                  color: root.dim
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.bodySmall
+                  visible: !jumpInput.text && !jumpInput.activeFocus
+                  anchors.verticalCenter: parent.verticalCenter
+                }
               }
             }
           }
-        }
 
-        // Action Buttons
-        RowLayout {
-          Layout.fillWidth: true
-          Layout.topMargin: Style.space(8)
-          spacing: Style.space(8)
+          // Action Buttons
+          RowLayout {
+            Layout.fillWidth: true
+            Layout.topMargin: Style.space(8)
+            spacing: Style.space(8)
 
-          Item { Layout.fillWidth: true }
+            Item { Layout.fillWidth: true }
 
-          // Cancel
-          Rectangle {
-            width: cancelLabel.implicitWidth + Style.space(20)
-            height: 32
-            radius: 6
-            color: cancelMouse.containsMouse ? Qt.rgba(255, 255, 255, 0.12) : Qt.rgba(255, 255, 255, 0.05)
+            // Cancel
+            Rectangle {
+              width: cancelLabel.implicitWidth + Style.space(20)
+              height: 32
+              radius: 6
+              color: cancelMouse.containsMouse ? Qt.rgba(255, 255, 255, 0.12) : Qt.rgba(255, 255, 255, 0.05)
 
-            Text {
-              id: cancelLabel
-              anchors.centerIn: parent
-              text: "Cancel"
-              color: root.foreground
-              font.family: root.fontFamily
-              font.pixelSize: Style.fontSize(11)
-              font.bold: true
+              Text {
+                id: cancelLabel
+                anchors.centerIn: parent
+                text: "Cancel"
+                color: root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.fontSize(11)
+                font.bold: true
+              }
+
+              MouseArea {
+                id: cancelMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: { root.addServerVisible = false }
+              }
             }
 
-            MouseArea {
-              id: cancelMouse
-              anchors.fill: parent
-              hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
-              onClicked: { root.addServerVisible = false }
-            }
-          }
+            // Save & Connect
+            Rectangle {
+              width: saveLabel.implicitWidth + Style.space(24)
+              height: 32
+              radius: 6
+              color: hostInput.text.trim() === ""
+                ? Qt.rgba(255, 255, 255, 0.05)
+                : (saveMouse.containsMouse ? Qt.lighter(root.accent, 1.1) : root.accent)
 
-          // Save & Connect
-          Rectangle {
-            width: saveLabel.implicitWidth + Style.space(24)
-            height: 32
-            radius: 6
-            color: hostInput.text.trim() === ""
-              ? Qt.rgba(255, 255, 255, 0.05)
-              : (saveMouse.containsMouse ? Qt.lighter(root.accent, 1.1) : root.accent)
+              Text {
+                id: saveLabel
+                anchors.centerIn: parent
+                text: "Save & Connect"
+                color: hostInput.text.trim() === "" ? root.dim : "#ffffff"
+                font.family: root.fontFamily
+                font.pixelSize: Style.fontSize(11)
+                font.bold: true
+              }
 
-            Text {
-              id: saveLabel
-              anchors.centerIn: parent
-              text: "Save & Connect"
-              color: hostInput.text.trim() === "" ? root.dim : "#ffffff"
-              font.family: root.fontFamily
-              font.pixelSize: Style.fontSize(11)
-              font.bold: true
-            }
+              MouseArea {
+                id: saveMouse
+                anchors.fill: parent
+                hoverEnabled: hostInput.text.trim() !== ""
+                cursorShape: hostInput.text.trim() !== "" ? Qt.PointingHandCursor : Qt.ArrowCursor
+                onClicked: {
+                  var host = hostInput.text.trim()
+                  if (host === "") return
 
-            MouseArea {
-              id: saveMouse
-              anchors.fill: parent
-              hoverEnabled: hostInput.text.trim() !== ""
-              cursorShape: hostInput.text.trim() !== "" ? Qt.PointingHandCursor : Qt.ArrowCursor
-              onClicked: {
-                var host = hostInput.text.trim()
-                if (host === "") return
+                  var sData = {
+                    host: host,
+                    name: nameInput.text.trim() || host,
+                    id: nameInput.text.trim() ? nameInput.text.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "-") : host,
+                    user: userInput.text.trim() || undefined,
+                    port: parseInt(portInput.text.trim(), 10) || 22,
+                    proxy_jump: jumpInput.text.trim() || undefined
+                  }
 
-                var sData = {
-                  host: host,
-                  name: nameInput.text.trim() || host,
-                  id: nameInput.text.trim() ? nameInput.text.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "-") : host,
-                  user: userInput.text.trim() || undefined,
-                  port: parseInt(portInput.text.trim(), 10) || 22,
-                  proxy_jump: jumpInput.text.trim() || undefined
+                  var cmd = Model.buildAddServerCmd(sData)
+                  root.sendAction(cmd)
+                  root.addServerVisible = false
+
+                  // Clear inputs
+                  hostInput.text = ""
+                  nameInput.text = ""
+                  userInput.text = ""
+                  jumpInput.text = ""
+                  portInput.text = "22"
+
+                  // Refresh after short delay
+                  Qt.callLater(function() {
+                    Qt.createQmlObject(
+                      'import QtQuick; Timer { interval: 1500; running: true; repeat: false; onTriggered: { destroy(); root.refresh() } }',
+                      root
+                    )
+                  })
                 }
-
-                var cmd = Model.buildAddServerCmd(sData)
-                root.sendAction(cmd)
-                root.addServerVisible = false
-
-                // Clear inputs
-                hostInput.text = ""
-                nameInput.text = ""
-                userInput.text = ""
-                jumpInput.text = ""
-                portInput.text = "22"
-
-                // Refresh after short delay
-                Qt.callLater(function() {
-                  Qt.createQmlObject(
-                    'import QtQuick; Timer { interval: 1500; running: true; repeat: false; onTriggered: { destroy(); root.refresh() } }',
-                    root
-                  )
-                })
               }
             }
           }
