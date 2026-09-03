@@ -282,6 +282,72 @@ defmodule OmarchyServer.SSH do
     end
   end
 
+  @doc """
+  Opens an interactive pseudo-terminal (PTY) shell on the SSH connection.
+  Returns `{:ok, channel_id}` or `{:error, reason}`.
+  """
+  @spec open_pty(Connection.t(), keyword()) :: {:ok, term()} | {:error, term()}
+  def open_pty(%Connection{conn_ref: conn_ref}, opts \\ []) do
+    timeout = Keyword.get(opts, :timeout, 10_000)
+    cols = Keyword.get(opts, :cols, 80)
+    rows = Keyword.get(opts, :rows, 24)
+    term = ensure_charlist(Keyword.get(opts, :term, "xterm-256color"))
+
+    with {:ok, channel_id} <- open_session(conn_ref, timeout),
+         status when status in [:ok, :success] <-
+           :ssh_connection.ptty_alloc(
+             conn_ref,
+             channel_id,
+             [term: term, width: cols, height: rows],
+             timeout
+           ),
+         shell_status when shell_status in [:ok, :success] <-
+           :ssh_connection.shell(conn_ref, channel_id) do
+      {:ok, channel_id}
+    else
+      {:error, reason} -> {:error, {:pty_failed, reason}}
+      other -> {:error, {:pty_failed, other}}
+    end
+  end
+
+  @doc """
+  Sends raw binary input data to the PTY channel.
+  """
+  @spec send_pty_data(Connection.t(), term(), binary()) :: :ok | {:error, term()}
+  def send_pty_data(%Connection{conn_ref: conn_ref}, channel_id, data) when is_binary(data) do
+    case :ssh_connection.send(conn_ref, channel_id, data) do
+      :ok -> :ok
+      {:error, reason} -> {:error, {:send_failed, reason}}
+    end
+  end
+
+  @doc """
+  Notifies the remote PTY of terminal window dimension changes.
+  """
+  @spec resize_pty(Connection.t(), term(), pos_integer(), pos_integer()) :: :ok | {:error, term()}
+  def resize_pty(%Connection{conn_ref: conn_ref}, channel_id, cols, rows)
+      when is_integer(cols) and is_integer(rows) do
+    case :ssh_connection.window_change(conn_ref, channel_id, cols, rows) do
+      status when status in [:ok, :success] -> :ok
+      {:error, reason} -> {:error, {:resize_failed, reason}}
+      _ -> :ok
+    end
+  end
+
+  @doc """
+  Closes an active PTY channel.
+  """
+  @spec close_pty(Connection.t(), term()) :: :ok
+  def close_pty(%Connection{conn_ref: conn_ref}, channel_id) do
+    try do
+      :ssh_connection.close(conn_ref, channel_id)
+    catch
+      _, _ -> :ok
+    end
+
+    :ok
+  end
+
   defp get_field(map_or_struct, key, default \\ nil)
 
   defp get_field(%Server{} = s, :host, _), do: s.host

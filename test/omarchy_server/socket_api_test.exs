@@ -240,5 +240,25 @@ defmodule OmarchyServer.SocketAPITest do
       assert json2["status"] == "ok"
       assert is_list(json2["servers"])
     end
+
+    test "handles open_terminal command for unknown server", %{socket_path: sock_path} do
+      {:ok, client} =
+        :gen_tcp.connect({:local, String.to_charlist(sock_path)}, 0, [
+          :binary,
+          :local,
+          active: false
+        ])
+
+      term_req =
+        ~s({"command": "open_terminal", "server_id": "non-existent", "cols": 80, "rows": 24}\n)
+
+      assert :ok = :gen_tcp.send(client, term_req)
+      {:ok, data} = :gen_tcp.recv(client, 0, 1000)
+      :gen_tcp.close(client)
+
+      assert {:ok, json} = :json.decode(data) |> then(&{:ok, &1})
+      assert json["status"] == "error"
+      assert json["error"] =~ "server worker not found"
+    end
   end
 end

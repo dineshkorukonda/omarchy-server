@@ -25,6 +25,7 @@ defmodule OmarchyServer.Application do
       {Registry, keys: :unique, name: OmarchyServer.WorkerRegistry},
       OmarchyServer.ServerSupervisor,
       manager_child,
+      OmarchyServer.TerminalSupervisor,
       OmarchyServer.SocketAPI
     ]
 

@@ -91,6 +91,13 @@ defmodule OmarchyServer.ServerWorker do
   end
 
   @doc """
+  Returns the underlying Server configuration struct.
+  """
+  def get_server_config(worker) do
+    GenServer.call(resolve_worker(worker), :get_server_config)
+  end
+
+  @doc """
   Looks up the worker pid in the registry for a server id.
   """
   def whereis(server_id) when is_binary(server_id) do
@@ -149,6 +156,9 @@ defmodule OmarchyServer.ServerWorker do
       id: state.server.id,
       name: state.server.name,
       host: state.server.host,
+      user: state.server.user,
+      port: state.server.port || 22,
+      proxy_jump: state.server.proxy_jump,
       status: state.status,
       metrics: state.metrics,
       checks: state.checks,
@@ -158,6 +168,11 @@ defmodule OmarchyServer.ServerWorker do
     }
 
     {:reply, snapshot, state}
+  end
+
+  @impl true
+  def handle_call(:get_server_config, _from, state) do
+    {:reply, state.server, state}
   end
 
   @impl true
