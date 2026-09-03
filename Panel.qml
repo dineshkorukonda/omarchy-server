@@ -334,6 +334,38 @@ Panel {
 
             Item { Layout.fillWidth: true }
 
+            // Refresh All button
+            Rectangle {
+              height: 28
+              radius: 6
+              implicitWidth: refreshAllLabel.implicitWidth + Style.space(16)
+              color: refreshAllMouse.containsMouse ? Qt.rgba(255, 255, 255, 0.12) : Qt.rgba(255, 255, 255, 0.06)
+
+              RowLayout {
+                anchors.centerIn: parent
+                spacing: Style.space(4)
+
+                Text {
+                  id: refreshAllLabel
+                  text: root.actionBusy ? "Refreshing..." : "Refresh All"
+                  color: root.foreground
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption
+                  font.bold: true
+                }
+              }
+
+              MouseArea {
+                id: refreshAllMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                  root.sendAction(Model.buildPollAllCmd())
+                }
+              }
+            }
+
             Rectangle {
               height: 28
               radius: 6
@@ -596,6 +628,36 @@ Panel {
               }
             }
 
+            // Refresh server button
+            Rectangle {
+              width: refreshServerLabel.implicitWidth + Style.space(12)
+              height: 24
+              radius: 4
+              color: refreshServerMouse.containsMouse ? Qt.rgba(255, 255, 255, 0.14) : Qt.rgba(255, 255, 255, 0.06)
+
+              Text {
+                id: refreshServerLabel
+                anchors.centerIn: parent
+                text: root.actionBusy ? "Refreshing..." : "Refresh"
+                color: root.accent
+                font.family: root.fontFamily
+                font.pixelSize: Style.fontPx(10 / 12.0)
+                font.bold: true
+              }
+
+              MouseArea {
+                id: refreshServerMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                  if (root.activeServer) {
+                    root.sendAction(Model.buildPollNowCmd(root.activeServer.id))
+                  }
+                }
+              }
+            }
+
             // Open SSH button
             Rectangle {
               width: sshLabel.implicitWidth + Style.space(12)
@@ -720,10 +782,25 @@ Panel {
           PanelSeparator { Layout.fillWidth: true }
 
           // Metrics Section
-          PanelSectionHeader {
-            text: "HOST METRICS"
-            foreground: root.foreground
-            fontFamily: root.fontFamily
+          RowLayout {
+            Layout.fillWidth: true
+
+            PanelSectionHeader {
+              text: "HOST METRICS"
+              foreground: root.foreground
+              fontFamily: root.fontFamily
+            }
+
+            Item { Layout.fillWidth: true }
+
+            Text {
+              text: root.activeServer && root.activeServer.updated_at
+                ? "Updated " + Model.formatRelativeTime(root.activeServer.updated_at)
+                : ""
+              color: root.dim
+              font.family: root.fontFamily
+              font.pixelSize: Style.fontPx(10 / 12.0)
+            }
           }
 
           // CPU metric card
@@ -744,14 +821,14 @@ Panel {
                 Text { text: "CPU Usage"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true }
                 Item { Layout.fillWidth: true }
                 Text {
-                  text: root.activeServer ? Model.formatCpu(root.activeServer.metrics) : "–"
+                  text: root.activeServer ? Model.formatCpu(root.activeServer.metrics, root.activeServer.status) : "–"
                   color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true
                 }
               }
 
               // Load averages subtext
               Text {
-                text: "Load averages (1m, 5m, 15m): " + (root.activeServer ? Model.formatLoad(root.activeServer.metrics) : "–")
+                text: "Load averages (1m, 5m, 15m): " + (root.activeServer ? Model.formatLoad(root.activeServer.metrics, root.activeServer.status) : "–")
                 color: root.dim
                 font.family: root.fontFamily
                 font.pixelSize: Style.fontPx(10 / 12.0)
@@ -777,7 +854,7 @@ Panel {
                 Text { text: "Memory (RAM)"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true }
                 Item { Layout.fillWidth: true }
                 Text {
-                  text: root.activeServer ? Model.formatMem(root.activeServer.metrics) : "–"
+                  text: root.activeServer ? Model.formatMem(root.activeServer.metrics, root.activeServer.status) : "–"
                   color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true
                 }
               }
@@ -802,7 +879,7 @@ Panel {
                 Text { text: "Disk Usage (Root /)"; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true }
                 Item { Layout.fillWidth: true }
                 Text {
-                  text: root.activeServer ? Model.formatDisk(root.activeServer.metrics) : "–"
+                  text: root.activeServer ? Model.formatDisk(root.activeServer.metrics, root.activeServer.status) : "–"
                   color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; font.bold: true
                 }
               }

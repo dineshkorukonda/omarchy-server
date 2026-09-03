@@ -323,6 +323,51 @@ action_view_logs() {
   echo "$log_output" | gum pager
 }
 
+action_refresh_metrics() {
+  show_header
+  local servers
+  servers=$(fetch_servers_json)
+  local count
+  count=$(echo "$servers" | jq 'length')
+
+  if [ "$count" -eq 0 ]; then
+    gum style --foreground 3 "No servers available."
+    sleep 1.5
+    return 0
+  fi
+
+  local choices=("All Servers")
+  while IFS= read -r line; do
+    [ -n "$line" ] && choices+=("$line")
+  done < <(echo "$servers" | jq -r '.[] | "\(.id) [\(.name // .id)]"')
+
+  gum style --bold "Select target to refresh:"
+  local selected
+  selected=$(printf "%s\n" "${choices[@]}" | gum choose) || return 0
+
+  if [ "$selected" = "All Servers" ]; then
+    local resp
+    resp=$(send_socket_cmd '{"command":"poll_all"}')
+    gum style --foreground 2 "Triggered refresh on all servers."
+  else
+    local server_id
+    server_id=$(echo "$selected" | awk '{print $1}')
+    local json_payload
+    json_payload=$(jq -n --arg cmd "poll_now" --arg id "$server_id" '{command: $cmd, server_id: $id}')
+    local resp
+    resp=$(send_socket_cmd "$json_payload")
+    if echo "$resp" | jq -e '.status == "ok"' >/dev/null 2>&1; then
+      gum style --foreground 2 "Metrics refreshed for '$server_id'."
+    else
+      local err
+      err=$(echo "$resp" | jq -r '.error // "unknown error"')
+      gum style --foreground 1 "Refresh failed: $err"
+    fi
+  fi
+
+  sleep 1.5
+}
+
 main() {
   check_dependencies
 
@@ -347,6 +392,7 @@ main() {
     action=$(gum choose \
       "List Servers" \
       "Server Details & Metrics" \
+      "Refresh Server Metrics" \
       "Add Server" \
       "Remove Server" \
       "View Server Logs" \
@@ -355,6 +401,7 @@ main() {
     case "$action" in
       "List Servers")            action_list_servers ;;
       "Server Details & Metrics") action_server_details ;;
+      "Refresh Server Metrics")  action_refresh_metrics ;;
       "Add Server")              action_add_server ;;
       "Remove Server")           action_remove_server ;;
       "View Server Logs")        action_view_logs ;;
