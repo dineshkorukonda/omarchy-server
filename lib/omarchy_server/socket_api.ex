@@ -1,11 +1,19 @@
 defmodule OmarchyServer.SocketAPI do
   @moduledoc """
   Unix domain socket server exposing server states and monitoring data as JSON.
+
+  Supported commands (send as JSON):
+    - GET / empty: returns all server states
+    - {"command": "get_server", "server_id": "..."}
+    - {"command": "reload"}
+    - {"command": "service_action", "server_id": "...", "service": "...", "type": "systemctl|docker|pm2", "action": "restart|stop"}
+    - {"command": "get_logs", "server_id": "...", "lines": N}
   """
 
   use GenServer
 
   alias OmarchyServer.ServerManager
+  alias OmarchyServer.ServiceAction
 
   @default_socket_path "/tmp/omarchy_server.sock"
   @name __MODULE__
@@ -114,6 +122,55 @@ defmodule OmarchyServer.SocketAPI do
 
       String.starts_with?(trimmed, "{") ->
         case decode_json(trimmed) do
+          {:ok,
+           %{
+             "command" => "service_action",
+             "server_id" => server_id,
+             "service" => service,
+             "type" => type,
+             "action" => action
+           }} ->
+            case validate_service_action(action) do
+              {:ok, safe_action} ->
+                case ServerManager.get_server(server_id) do
+                  {:ok, _server} ->
+                    case ServiceAction.run(server_id, service, type, safe_action) do
+                      {:ok, output} ->
+                        %{
+                          status: "ok",
+                          output: output,
+                          server_id: server_id,
+                          service: service,
+                          action: safe_action
+                        }
+
+                      {:error, reason} ->
+                        %{status: "error", error: inspect(reason)}
+                    end
+
+                  {:error, :not_found} ->
+                    %{status: "error", error: "server not found: #{server_id}"}
+
+                  {:error, reason} ->
+                    %{status: "error", error: to_string(reason)}
+                end
+
+              {:error, reason} ->
+                %{status: "error", error: reason}
+            end
+
+          {:ok, %{"command" => "get_logs", "server_id" => server_id} = cmd} ->
+            lines = Map.get(cmd, "lines", 50)
+            journal_unit = Map.get(cmd, "unit")
+
+            case ServiceAction.get_logs(server_id, lines, journal_unit) do
+              {:ok, log_output} ->
+                %{status: "ok", server_id: server_id, lines: lines, log: log_output}
+
+              {:error, reason} ->
+                %{status: "error", error: inspect(reason)}
+            end
+
           {:ok, %{"command" => "get_server", "server_id" => id}} ->
             case ServerManager.get_server(id) do
               {:ok, server} -> %{status: "ok", server: serialize_server(server)}
@@ -191,4 +248,10 @@ defmodule OmarchyServer.SocketAPI do
     File.rm(path)
     :ok
   end
+
+  defp validate_service_action("restart"), do: {:ok, "restart"}
+  defp validate_service_action("stop"), do: {:ok, "stop"}
+
+  defp validate_service_action(other),
+    do: {:error, "invalid action: #{other}. allowed: restart, stop"}
 end

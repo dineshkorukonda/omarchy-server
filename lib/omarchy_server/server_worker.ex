@@ -105,6 +105,12 @@ defmodule OmarchyServer.ServerWorker do
     {:via, Registry, {OmarchyServer.WorkerRegistry, server_id}}
   end
 
+  @doc """
+  Public wrapper around resolve_worker/1 so external modules (e.g. ServiceAction) can
+  locate the correct GenServer target without duplicating the logic.
+  """
+  def resolve_worker_pub(server_id), do: resolve_worker(server_id)
+
   # Server Callbacks
 
   @impl true
@@ -169,6 +175,26 @@ defmodule OmarchyServer.ServerWorker do
     close_connection(state)
     new_state = %{state | status: :connecting, connection: nil}
     {:reply, :ok, do_connect(new_state)}
+  end
+
+  @impl true
+  def handle_call({:exec_cmd, cmd}, _from, state) do
+    cond do
+      is_nil(state.connection) ->
+        {:reply, {:error, :not_connected}, state}
+
+      state.status == :reconnecting ->
+        {:reply, {:error, :reconnecting}, state}
+
+      true ->
+        result = state.runner.(state.server, {:exec, state.connection, cmd})
+
+        case result do
+          {:ok, output, _code} -> {:reply, {:ok, output}, state}
+          {:ok, output} when is_binary(output) -> {:reply, {:ok, output}, state}
+          {:error, reason} -> {:reply, {:error, reason}, state}
+        end
+    end
   end
 
   @impl true

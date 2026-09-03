@@ -60,6 +60,48 @@ Panel {
     }
   }
 
+  // One-shot process for sending action commands to the daemon
+  Process {
+    id: actionSocket
+    running: false
+
+    stdout: SplitParser {
+      splitMarker: "\n"
+      onRead: function(data) {
+        if (data && data.trim().length > 0) {
+          root.actionResult = data.trim()
+          root.actionBusy = false
+        }
+      }
+    }
+
+    onExited: function() {
+      root.actionBusy = false
+    }
+  }
+
+  // Confirm dialog state
+  property bool confirmVisible: false
+  property string confirmMessage: ""
+  property string pendingActionCmd: ""
+  property bool actionBusy: false
+  property string actionResult: ""
+
+  function sendAction(jsonCmd) {
+    actionSocket.command = ["sh", "-c",
+      "echo '" + jsonCmd.replace(/'/g, "'\\''") + "' | nc -U " + root.socketPath]
+    root.actionBusy = true
+    root.actionResult = ""
+    actionSocket.running = true
+  }
+
+  function requestServiceAction(serverId, serviceName, serviceType, action) {
+    var cmd = Model.buildServiceActionCmd(serverId, serviceName, serviceType, action)
+    root.confirmMessage = "Are you sure you want to " + action + " " + serviceName + "?"
+    root.pendingActionCmd = cmd
+    root.confirmVisible = true
+  }
+
   Timer {
     id: pollTimer
     interval: root.refreshIntervalSec * 1000
@@ -611,6 +653,74 @@ Panel {
                   font.pixelSize: Style.font.caption
                   font.bold: true
                 }
+
+                // Restart action button
+                Rectangle {
+                  width: restartLabel.implicitWidth + Style.space(10)
+                  height: 22
+                  radius: 4
+                  color: restartMouse.containsMouse ? Qt.rgba(255, 255, 255, 0.12) : Qt.rgba(255, 255, 255, 0.05)
+                  visible: modelData.status !== "skipped" && root.activeServer !== null
+
+                  Text {
+                    id: restartLabel
+                    anchors.centerIn: parent
+                    text: "restart"
+                    color: root.foreground
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.fontSize(9)
+                    font.bold: true
+                  }
+
+                  MouseArea {
+                    id: restartMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                      root.requestServiceAction(
+                        root.selectedServerId,
+                        modelData.name,
+                        modelData.type,
+                        "restart"
+                      )
+                    }
+                  }
+                }
+
+                // Stop action button
+                Rectangle {
+                  width: stopLabel.implicitWidth + Style.space(10)
+                  height: 22
+                  radius: 4
+                  color: stopMouse.containsMouse ? Qt.rgba(239, 68, 68, 0.20) : Qt.rgba(239, 68, 68, 0.06)
+                  visible: modelData.status === "running" && root.activeServer !== null
+
+                  Text {
+                    id: stopLabel
+                    anchors.centerIn: parent
+                    text: "stop"
+                    color: root.urgent
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.fontSize(9)
+                    font.bold: true
+                  }
+
+                  MouseArea {
+                    id: stopMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                      root.requestServiceAction(
+                        root.selectedServerId,
+                        modelData.name,
+                        modelData.type,
+                        "stop"
+                      )
+                    }
+                  }
+                }
               }
             }
           }
@@ -624,6 +734,38 @@ Panel {
             font.pixelSize: Style.font.caption
           }
         }
+      }
+    }
+  }
+
+  // Confirm dialog overlay — sits above the KeyboardPanel popup
+  ConfirmDialog {
+    id: confirmDialog
+    anchors.fill: parent
+    opened: root.confirmVisible
+    message: root.confirmMessage
+    cancelText: "Cancel"
+    confirmText: "Confirm"
+    foreground: root.foreground
+    fontFamily: root.fontFamily
+
+    onCanceled: {
+      root.confirmVisible = false
+      root.pendingActionCmd = ""
+    }
+
+    onConfirmed: {
+      root.confirmVisible = false
+      if (root.pendingActionCmd !== "") {
+        root.sendAction(root.pendingActionCmd)
+        root.pendingActionCmd = ""
+        // Refresh server state after a short delay to pick up the new status
+        Qt.callLater(function() {
+          Qt.createQmlObject(
+            'import QtQuick; Timer { interval: 3000; running: true; repeat: false; onTriggered: { destroy(); root.refresh() } }',
+            root
+          )
+        })
       }
     }
   }
