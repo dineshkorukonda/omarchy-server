@@ -1,0 +1,5 @@
+Filesystem                Size  Used Avail Use% Mounted on
+dev                       7.3G     0  7.3G   0% /dev
+run                       7.5G  2.0M  7.5G   1% /run
+/dev/mapper/omarchy_root  126G   25G  100G  20% /
+/dev/nvme0n1p6            2.0G  116M  1.9G   6% /boot
