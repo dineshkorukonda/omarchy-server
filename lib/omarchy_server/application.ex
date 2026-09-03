@@ -10,7 +10,8 @@ defmodule OmarchyServer.Application do
     children = [
       {Registry, keys: :unique, name: OmarchyServer.WorkerRegistry},
       OmarchyServer.ServerSupervisor,
-      OmarchyServer.ServerManager
+      OmarchyServer.ServerManager,
+      OmarchyServer.SocketAPI
     ]
 
     opts = [strategy: :one_for_one, name: OmarchyServer.Supervisor]
