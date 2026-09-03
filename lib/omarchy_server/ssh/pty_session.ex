@@ -8,6 +8,7 @@ defmodule OmarchyServer.SSH.PTYSession do
 
   alias OmarchyServer.Config.Server
   alias OmarchyServer.SSH
+  alias OmarchyServer.Terminal.Buffer
 
   defstruct [
     :server,
@@ -15,6 +16,7 @@ defmodule OmarchyServer.SSH.PTYSession do
     :channel_id,
     :client_pid,
     :client_ref,
+    :buffer,
     cols: 80,
     rows: 24,
     term: "xterm-256color"
@@ -55,6 +57,13 @@ defmodule OmarchyServer.SSH.PTYSession do
   end
 
   @doc """
+  Returns a snapshot map of the terminal screen buffer.
+  """
+  def get_buffer(session) do
+    GenServer.call(session, :get_buffer)
+  end
+
+  @doc """
   Terminates the PTY session and closes the channel.
   """
   def close(session) do
@@ -70,6 +79,7 @@ defmodule OmarchyServer.SSH.PTYSession do
     cols = Keyword.get(opts, :cols, 80)
     rows = Keyword.get(opts, :rows, 24)
     term = Keyword.get(opts, :term, "xterm-256color")
+    buffer = Buffer.new(cols, rows)
 
     state = %__MODULE__{
       server: server,
@@ -77,7 +87,8 @@ defmodule OmarchyServer.SSH.PTYSession do
       client_ref: client_ref,
       cols: cols,
       rows: rows,
-      term: term
+      term: term,
+      buffer: buffer
     }
 
     {:ok, state, {:continue, :connect}}
@@ -104,6 +115,12 @@ defmodule OmarchyServer.SSH.PTYSession do
   end
 
   @impl true
+  def handle_call(:get_buffer, _from, state) do
+    snapshot = if state.buffer, do: Buffer.to_snapshot(state.buffer), else: %{}
+    {:reply, snapshot, state}
+  end
+
+  @impl true
   def handle_cast({:send_input, data}, state) do
     if state.connection && state.channel_id do
       SSH.send_pty_data(state.connection, state.channel_id, data)
@@ -118,17 +135,23 @@ defmodule OmarchyServer.SSH.PTYSession do
       SSH.resize_pty(state.connection, state.channel_id, cols, rows)
     end
 
-    {:noreply, %{state | cols: cols, rows: rows}}
+    new_buf = if state.buffer, do: Buffer.resize(state.buffer, cols, rows), else: nil
+    {:noreply, %{state | cols: cols, rows: rows, buffer: new_buf}}
   end
 
   # Incoming messages from OTP SSH channel
   @impl true
   def handle_info({:ssh_cm, _conn_ref, {:data, channel_id, 0, data}}, state) do
-    if channel_id == state.channel_id do
-      notify_client(state, {:pty_data, self(), data})
-    end
+    new_state =
+      if channel_id == state.channel_id do
+        new_buf = if state.buffer, do: Buffer.feed(state.buffer, data), else: nil
+        notify_client(state, {:pty_data, self(), data})
+        %{state | buffer: new_buf}
+      else
+        state
+      end
 
-    {:noreply, state}
+    {:noreply, new_state}
   end
 
   @impl true
