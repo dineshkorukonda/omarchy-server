@@ -15,6 +15,9 @@ Panel {
 
   property string socketPath: setting("socketPath", "/tmp/omarchy_server.sock")
   property int refreshIntervalSec: setting("refreshIntervalSec", 5)
+  property bool notificationsEnabled: setting("notificationsEnabled", true)
+  property string terminalEmulator: setting("terminalEmulator", "auto")
+  property int defaultLogLines: setting("logLines", 50)
 
   property var daemonStatus: Model.defaultStatus()
   property string selectedServerId: ""
@@ -106,7 +109,7 @@ Panel {
   property bool logViewVisible: false
   property string logContent: ""
   property bool logBusy: false
-  property int logLines: 50
+  property int logLines: root.defaultLogLines
   property string logUnitFilter: ""
 
   // Process for fetching logs from the daemon
@@ -171,17 +174,24 @@ Panel {
 
     sshArgs.push(server.host)
 
-    // Try terminal emulators in preference order: foot, kitty, xterm
-    var terminals = [
+    var allTerminals = [
       { name: "foot", args: ["foot", "ssh"].concat(sshArgs) },
       { name: "kitty", args: ["kitty", "ssh"].concat(sshArgs) },
       { name: "xterm", args: ["xterm", "-e", "ssh"].concat(sshArgs) }
     ]
 
-    // Use the first available terminal
-    for (var i = 0; i < terminals.length; i++) {
-      var t = terminals[i]
-      sshTermProcess.command = t.args
+    // If a specific terminal is configured, try that first; otherwise use auto order
+    var preferred = root.terminalEmulator
+    var orderedTerminals = allTerminals
+
+    if (preferred && preferred !== "auto") {
+      var preferredList = allTerminals.filter(function(t) { return t.name === preferred })
+      var rest = allTerminals.filter(function(t) { return t.name !== preferred })
+      orderedTerminals = preferredList.concat(rest)
+    }
+
+    for (var i = 0; i < orderedTerminals.length; i++) {
+      sshTermProcess.command = orderedTerminals[i].args
       sshTermProcess.running = true
       root.close()
       return

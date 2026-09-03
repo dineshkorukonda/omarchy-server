@@ -14,19 +14,23 @@
   },
   "barWidget": {
     "displayName": "Servers",
-    "description": "Server health status dot, server detail panel, service management, and SSH terminal launcher.",
+    "description": "Server health status dot, server detail panel, service management, SSH terminal launcher, and desktop notifications.",
     "category": "System",
     "allowMultiple": false,
     "defaultSection": "right",
     "defaults": {
       "refreshIntervalSec": 5,
-      "socketPath": "/tmp/omarchy_server.sock"
+      "socketPath": "/tmp/omarchy_server.sock",
+      "notificationsEnabled": true,
+      "terminalEmulator": "auto",
+      "logLines": 50
     },
     "schema": [
       {
         "key": "refreshIntervalSec",
         "type": "integer",
         "label": "Refresh interval (seconds)",
+        "description": "How often the plugin polls the daemon for server state updates.",
         "min": 1,
         "max": 300,
         "step": 1,
@@ -36,7 +40,32 @@
         "key": "socketPath",
         "type": "string",
         "label": "Daemon Unix socket path",
+        "description": "Path to the omarchy-server daemon Unix domain socket.",
         "defaultValue": "/tmp/omarchy_server.sock"
+      },
+      {
+        "key": "notificationsEnabled",
+        "type": "boolean",
+        "label": "Desktop notifications",
+        "description": "Send a desktop notification when a server goes offline or recovers.",
+        "defaultValue": true
+      },
+      {
+        "key": "terminalEmulator",
+        "type": "string",
+        "label": "Terminal emulator",
+        "description": "Terminal emulator to use for 'Open SSH'. Supported: auto, foot, kitty, xterm. 'auto' tries foot then kitty then xterm.",
+        "defaultValue": "auto"
+      },
+      {
+        "key": "logLines",
+        "type": "integer",
+        "label": "Log lines",
+        "description": "Default number of log lines to tail when opening the log viewer.",
+        "min": 10,
+        "max": 500,
+        "step": 10,
+        "defaultValue": 50
       }
     ]
   }
