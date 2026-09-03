@@ -242,3 +242,27 @@ function buildGetLogsCmd(serverId, lines, unit) {
   if (unit) cmd.unit = unit
   return JSON.stringify(cmd)
 }
+
+function buildSshCommand(server) {
+  if (!server) return []
+
+  var args = ["ssh"]
+
+  if (server.proxy_jump) {
+    args.push("-J")
+    args.push(server.proxy_jump)
+  }
+
+  if (server.user) {
+    args.push("-l")
+    args.push(server.user)
+  }
+
+  if (server.port && server.port !== 22) {
+    args.push("-p")
+    args.push(String(server.port))
+  }
+
+  args.push(server.host)
+  return args
+}
