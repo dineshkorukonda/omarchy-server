@@ -150,3 +150,79 @@ function tooltipText(statusObj) {
 
   return "Omarchy Server: " + statusObj.count + " servers (" + details.join(", ") + ")"
 }
+
+function findServer(servers, serverId) {
+  if (!Array.isArray(servers) || !serverId) return null
+  for (var i = 0; i < servers.length; i++) {
+    if (servers[i] && servers[i].id === serverId) {
+      return servers[i]
+    }
+  }
+  return null
+}
+
+function formatCpu(metrics) {
+  if (!metrics || !metrics.cpu || typeof metrics.cpu.used_percent !== "number") {
+    return "–"
+  }
+  return metrics.cpu.used_percent + "%"
+}
+
+function formatLoad(metrics) {
+  if (!metrics || !metrics.cpu || typeof metrics.cpu.load_1 !== "number") {
+    return "–"
+  }
+  return metrics.cpu.load_1 + ", " + metrics.cpu.load_5 + ", " + metrics.cpu.load_15
+}
+
+function formatMem(metrics) {
+  if (!metrics || !metrics.memory || typeof metrics.memory.total_mb !== "number") {
+    return "–"
+  }
+  var used = metrics.memory.used_mb
+  var total = metrics.memory.total_mb
+  var pct = metrics.memory.used_percent || Math.round((used / total) * 100)
+  return used + " / " + total + " MB (" + pct + "%)"
+}
+
+function formatDisk(metrics) {
+  if (!metrics || !metrics.disk || !metrics.disk.root) {
+    return "–"
+  }
+  var root = metrics.disk.root
+  return root.used + " / " + root.size + " (" + root.use_percent + "%)"
+}
+
+function serviceList(checksMap) {
+  if (!checksMap || typeof checksMap !== "object") return []
+  var list = []
+  for (var key in checksMap) {
+    if (Object.prototype.hasOwnProperty.call(checksMap, key)) {
+      var item = checksMap[key]
+      if (item) {
+        list.push({
+          name: item.name || key,
+          type: item.type || "systemctl",
+          status: item.status || "unknown"
+        })
+      }
+    }
+  }
+  return list
+}
+
+function serviceStatusColor(status, colors) {
+  colors = colors || {}
+  var st = String(status || "").toLowerCase()
+
+  if (st === "running" || st === "active") {
+    return colors.accent || colors.success || "#22c55e"
+  }
+  if (st === "stopped" || st === "inactive" || st === "failed") {
+    return colors.urgent || colors.danger || "#ef4444"
+  }
+  if (st === "skipped") {
+    return colors.dim || "#9ca3af"
+  }
+  return colors.warning || "#f59e0b"
+}

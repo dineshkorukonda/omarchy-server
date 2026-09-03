@@ -121,5 +121,58 @@ defmodule OmarchyServer.PluginTest do
         assert result["red"] == "#ef4444"
       end
     end
+
+    test "formats metrics and finds selected server" do
+      node_script = """
+      const fs = require('fs');
+      const vm = require('vm');
+      const code = fs.readFileSync('#{@model_path}', 'utf8');
+      const context = {};
+      vm.createContext(context);
+      vm.runInContext(code, context);
+
+      const servers = [
+        {
+          id: 'web-1',
+          name: 'Web Server 1',
+          status: 'polling',
+          metrics: {
+            cpu: { used_percent: 18.5, load_1: 0.45, load_5: 0.32, load_15: 0.20 },
+            memory: { used_mb: 4096, total_mb: 16384, used_percent: 25.0 },
+            disk: { root: { used: '25G', size: '120G', use_percent: 21 } }
+          },
+          checks: {
+            nginx: { name: 'nginx', type: 'systemctl', status: 'running' },
+            app: { name: 'app', type: 'docker', status: 'stopped' }
+          }
+        }
+      ];
+
+      const found = context.findServer(servers, 'web-1');
+      const notFound = context.findServer(servers, 'unknown');
+      const cpu = context.formatCpu(found.metrics);
+      const load = context.formatLoad(found.metrics);
+      const mem = context.formatMem(found.metrics);
+      const disk = context.formatDisk(found.metrics);
+      const services = context.serviceList(found.checks);
+
+      console.log(JSON.stringify({ foundId: found ? found.id : null, notFound, cpu, load, mem, disk, servicesCount: services.length }));
+      """
+
+      node = System.find_executable("node")
+
+      if node do
+        {output, 0} = System.cmd(node, ["-e", node_script])
+        {:ok, result} = :json.decode(String.trim(output)) |> then(&{:ok, &1})
+
+        assert result["foundId"] == "web-1"
+        assert result["notFound"] in [nil, :null]
+        assert result["cpu"] == "18.5%"
+        assert result["load"] == "0.45, 0.32, 0.2"
+        assert result["mem"] == "4096 / 16384 MB (25%)"
+        assert result["disk"] == "25G / 120G (21%)"
+        assert result["servicesCount"] == 2
+      end
+    end
   end
 end
