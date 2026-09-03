@@ -226,3 +226,19 @@ function serviceStatusColor(status, colors) {
   }
   return colors.warning || "#f59e0b"
 }
+
+function buildServiceActionCmd(serverId, serviceName, serviceType, action) {
+  return JSON.stringify({
+    command: "service_action",
+    server_id: serverId,
+    service: serviceName,
+    type: serviceType,
+    action: action
+  })
+}
+
+function buildGetLogsCmd(serverId, lines, unit) {
+  var cmd = { command: "get_logs", server_id: serverId, lines: lines || 50 }
+  if (unit) cmd.unit = unit
+  return JSON.stringify(cmd)
+}
