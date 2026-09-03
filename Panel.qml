@@ -241,7 +241,6 @@ Panel {
       else root.toggle()
     }
 
-    // Status dot indicator overlaid on the button
     Rectangle {
       id: statusDot
       width: 6
@@ -1015,9 +1014,8 @@ Panel {
         }
       }
     }
-  }
 
-
+    // Confirm dialog overlay — sits above the KeyboardPanel popup
     ConfirmDialog {
       id: confirmDialog
       anchors.fill: parent
@@ -1424,3 +1422,4 @@ Panel {
       }
     }
   }
+}
