@@ -18,12 +18,21 @@ Panel {
 
   property var daemonStatus: Model.defaultStatus()
   readonly property bool hasServers: daemonStatus.count > 0
-  readonly property string overallState: Model.overallHealth(daemonStatus)
+  readonly property string worstStatusState: daemonStatus.worstState
 
-  readonly property color foreground: bar ? bar.foreground : Color.foreground
+  readonly property color foreground: bar ? bar.barForeground : Color.foreground
   readonly property color urgent: bar ? bar.urgent : Color.urgent
   readonly property color dim: Qt.darker(foreground, 1.55)
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
+
+  readonly property color dotColor: Model.statusColor(root.worstStatusState, {
+    accent: bar ? bar.accent : Color.accent,
+    warning: "#facc15",
+    urgent: root.urgent,
+    dim: root.dim
+  })
+
+  readonly property string tipText: Model.tooltipText(root.daemonStatus)
 
   Process {
     id: socketReader
@@ -65,35 +74,61 @@ Panel {
     }
   }
 
+  // Bar Widget item representing the pill on the bar
   Item {
     id: barWidget
-    implicitWidth: pillLayout.implicitWidth
-    implicitHeight: pillLayout.implicitHeight
+    implicitWidth: pillLayout.implicitWidth + Style.space(8)
+    implicitHeight: bar ? bar.barSize : Style.bar.sizeHorizontal
 
     RowLayout {
       id: pillLayout
-      anchors.fill: parent
-      spacing: Style.space(2)
+      anchors.centerIn: parent
+      spacing: Style.space(4)
 
       Rectangle {
         id: statusDot
         width: 8
         height: 8
         radius: 4
-        color: Model.statusColor(root.overallState, {
-          success: Color.accent || "#4ade80",
-          warning: "#facc15",
-          urgent: root.urgent
-        })
+        color: root.dotColor
+
+        Behavior on color {
+          ColorAnimation { duration: 180 }
+        }
       }
 
       Text {
         id: serverCountText
-        text: root.daemonStatus.count > 0 ? root.daemonStatus.count.toString() : "–"
+        text: Model.pillLabel(root.daemonStatus)
         color: root.foreground
         font.family: root.fontFamily
         font.pixelSize: Style.fontSize(12)
         font.bold: true
+      }
+    }
+
+    MouseArea {
+      id: mouseArea
+      anchors.fill: parent
+      hoverEnabled: true
+      cursorShape: Qt.PointingHandCursor
+
+      onEntered: {
+        if (root.bar && typeof root.bar.showTooltip === "function") {
+          root.bar.showTooltip(barWidget, root.tipText)
+        }
+      }
+
+      onExited: {
+        if (root.bar && typeof root.bar.hideTooltip === "function") {
+          root.bar.hideTooltip(barWidget)
+        }
+      }
+
+      onClicked: {
+        if (root.controller && typeof root.controller.toggle === "function") {
+          root.controller.toggle()
+        }
       }
     }
   }
