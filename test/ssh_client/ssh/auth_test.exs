@@ -65,25 +65,22 @@ defmodule SSHClient.SSH.AuthTest do
   describe "auth_methods_for_order/1" do
     test "converts default order to charlists" do
       methods = Auth.auth_methods_for_order([:key, :password, :keyboard_interactive])
-      assert methods == [~c"publickey", ~c"password", ~c"keyboard-interactive"]
+      assert methods == ~c"publickey,password,keyboard-interactive"
     end
 
     test "respects per-host auth order override" do
       methods = Auth.auth_methods_for_order([:password, :key])
-      assert methods == [~c"password", ~c"publickey"]
+      assert methods == ~c"password,publickey"
 
       kbi_first = Auth.auth_methods_for_order([:keyboard_interactive, :password])
-      assert kbi_first == [~c"keyboard-interactive", ~c"password"]
+      assert kbi_first == ~c"keyboard-interactive,password"
     end
 
     test "handles single atom or nil" do
-      assert Auth.auth_methods_for_order(:password) == [~c"password"]
+      assert Auth.auth_methods_for_order(:password) == ~c"password"
 
-      assert Auth.auth_methods_for_order(nil) == [
-               ~c"publickey",
-               ~c"password",
-               ~c"keyboard-interactive"
-             ]
+      assert Auth.auth_methods_for_order(nil) ==
+               ~c"publickey,password,keyboard-interactive"
     end
   end
 
@@ -144,7 +141,7 @@ defmodule SSHClient.SSH.AuthTest do
 
       opts = Auth.build_options(host, password: "temp_password")
 
-      assert Keyword.get(opts, :auth_methods) == [~c"keyboard-interactive", ~c"password"]
+      assert Keyword.get(opts, :auth_methods) == ~c"keyboard-interactive,password"
       assert Keyword.get(opts, :password) == ~c"temp_password"
       assert Keyword.get(opts, :user_dir) == String.to_charlist(Path.dirname(custom_key))
     end

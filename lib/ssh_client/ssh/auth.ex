@@ -39,9 +39,9 @@ defmodule SSHClient.SSH.Auth do
 
   @doc """
   Converts an auth order list (e.g. `[:key, :password, :keyboard_interactive]`)
-  into Erlang `:ssh` `:auth_methods` option format.
+  into Erlang `:ssh` `:auth_methods` option format (comma-separated charlist).
   """
-  @spec auth_methods_for_order(list(atom() | String.t()) | atom() | nil) :: list(charlist())
+  @spec auth_methods_for_order(list(atom() | String.t()) | atom() | nil) :: charlist()
   def auth_methods_for_order(nil), do: auth_methods_for_order(@default_auth_order)
 
   def auth_methods_for_order(single_method) when is_atom(single_method) do
@@ -52,7 +52,8 @@ defmodule SSHClient.SSH.Auth do
     order
     |> Enum.map(&normalize_method/1)
     |> Enum.reject(&is_nil/1)
-    |> Enum.map(&String.to_charlist/1)
+    |> Enum.join(",")
+    |> String.to_charlist()
   end
 
   defp normalize_method(:key), do: "publickey"
