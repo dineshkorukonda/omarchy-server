@@ -250,5 +250,11 @@ defmodule SSHClient.ConfigTest do
       assert is_binary(path)
       assert String.ends_with?(path, "servers.json") or String.ends_with?(path, "servers.yaml")
     end
+
+    test "os_config_dir/0 resolves an OS-appropriate directory path" do
+      dir = Config.os_config_dir()
+      assert is_binary(dir)
+      assert String.contains?(dir, "ssh-client")
+    end
   end
 end
