@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.ServiceChecks do
+defmodule SSHClient.ServiceChecks do
   @moduledoc """
   Performs service status checks for systemctl, pm2, and docker.
   Returns running, stopped, unknown, or skipped (when tool is not installed).

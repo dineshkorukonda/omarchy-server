@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.ServerWorkerTest do
+defmodule SSHClient.ServerWorkerTest do
   use ExUnit.Case, async: false
 
   alias SSHClient.Config.Server

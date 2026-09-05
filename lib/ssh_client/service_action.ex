@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.ServiceAction do
+defmodule SSHClient.ServiceAction do
   @moduledoc """
   Executes service management actions (restart, stop) and log retrieval on
   remote servers via the existing ServerWorker SSH connection.

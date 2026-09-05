@@ -1,4 +1,4 @@
-﻿defmodule SSHClientTest do
+defmodule SSHClientTest do
   use ExUnit.Case
   doctest SSHClient
 

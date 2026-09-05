@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.NotifierTest do
+defmodule SSHClient.NotifierTest do
   use ExUnit.Case, async: true
 
   alias SSHClient.Notifier

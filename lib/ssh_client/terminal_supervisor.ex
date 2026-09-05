@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.TerminalSupervisor do
+defmodule SSHClient.TerminalSupervisor do
   @moduledoc """
   DynamicSupervisor managing active PTY terminal sessions.
   """

@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.Notifier do
+defmodule SSHClient.Notifier do
   @moduledoc """
   Sends desktop notifications when a server changes state.
 

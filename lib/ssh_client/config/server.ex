@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.Config.Server do
+defmodule SSHClient.Config.Server do
   @moduledoc """
   Represents a remote server target for monitoring and management.
   """

@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.Config do
+defmodule SSHClient.Config do
   @moduledoc """
   Loads and validates servers.yaml configuration for omarchy-server.
   """

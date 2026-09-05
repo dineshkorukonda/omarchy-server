@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.ServiceChecksTest do
+defmodule SSHClient.ServiceChecksTest do
   use ExUnit.Case, async: true
 
   alias SSHClient.Config.Check

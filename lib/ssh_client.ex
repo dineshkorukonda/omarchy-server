@@ -1,4 +1,4 @@
-﻿defmodule SSHClient do
+defmodule SSHClient do
   @moduledoc """
   Root module for `SSHClient`.
   """

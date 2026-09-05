@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.ServerManager do
+defmodule SSHClient.ServerManager do
   @moduledoc """
   Coordinates ServerWorkers under ServerSupervisor, reconciling changes from servers.yaml.
   """

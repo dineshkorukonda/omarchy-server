@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.ServerSupervisor do
+defmodule SSHClient.ServerSupervisor do
   @moduledoc """
   DynamicSupervisor managing individual ServerWorker processes.
   """

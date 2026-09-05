@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.Config.Check do
+defmodule SSHClient.Config.Check do
   @moduledoc """
   Specifies a service check to run on a managed server.
   """

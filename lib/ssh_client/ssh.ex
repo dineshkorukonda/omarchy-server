@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.SSH do
+defmodule SSHClient.SSH do
   @moduledoc """
   SSH client wrapper built on OTP :ssh with ProxyJump support and typed error handling.
   """

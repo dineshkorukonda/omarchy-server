@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.Terminal.Buffer do
+defmodule SSHClient.Terminal.Buffer do
   @moduledoc """
   Terminal screen buffer and ANSI escape sequence processor.
   Maintains screen state, cursor position, text styles, and line scrolling.

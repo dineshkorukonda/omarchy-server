@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.PTYSessionTest do
+defmodule SSHClient.PTYSessionTest do
   use ExUnit.Case, async: false
 
   alias SSHClient.Config.Server

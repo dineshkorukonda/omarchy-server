@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.PluginTest do
+defmodule SSHClient.PluginTest do
   use ExUnit.Case, async: true
 
   @manifest_path Path.expand("../../manifest.json", __DIR__)

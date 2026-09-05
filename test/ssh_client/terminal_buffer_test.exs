@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.Terminal.BufferTest do
+defmodule SSHClient.Terminal.BufferTest do
   use ExUnit.Case, async: true
 
   alias SSHClient.Terminal.Buffer

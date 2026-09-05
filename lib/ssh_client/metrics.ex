@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.Metrics do
+defmodule SSHClient.Metrics do
   @moduledoc """
   Collects and parses host metrics (CPU, memory, disk) from standard Linux CLI tools.
   Parses top, free -m, and df -h output into structured maps.

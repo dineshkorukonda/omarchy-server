@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.MetricsTest do
+defmodule SSHClient.MetricsTest do
   use ExUnit.Case, async: true
 
   alias SSHClient.Metrics

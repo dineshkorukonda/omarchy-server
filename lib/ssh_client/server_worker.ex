@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.ServerWorker do
+defmodule SSHClient.ServerWorker do
   @moduledoc """
   GenServer maintaining state machine and monitoring loop for an individual server.
   States: :connecting -> :polling -> :degraded -> :reconnecting.

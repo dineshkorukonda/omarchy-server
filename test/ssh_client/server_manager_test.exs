@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.ServerManagerTest do
+defmodule SSHClient.ServerManagerTest do
   use ExUnit.Case, async: false
 
   alias SSHClient.Config

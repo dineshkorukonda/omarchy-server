@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.InitSystem do
+defmodule SSHClient.InitSystem do
   @moduledoc """
   Probes and caches the init system used by a remote host over SSH.
   Supported init systems: :systemd, :openrc, :sysvinit, and :unsupported.

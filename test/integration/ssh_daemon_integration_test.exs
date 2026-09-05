@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.Integration.SSHDaemonIntegrationTest do
+defmodule SSHClient.Integration.SSHDaemonIntegrationTest do
   use ExUnit.Case, async: false
 
   alias SSHClient.Config.Server

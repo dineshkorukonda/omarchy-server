@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.Application do
+defmodule SSHClient.Application do
   @moduledoc false
 
   use Application

@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.InitSystemTest do
+defmodule SSHClient.InitSystemTest do
   use ExUnit.Case, async: false
 
   alias SSHClient.InitSystem

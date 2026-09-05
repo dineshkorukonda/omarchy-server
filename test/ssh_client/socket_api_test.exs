@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.SocketAPITest do
+defmodule SSHClient.SocketAPITest do
   use ExUnit.Case, async: false
 
   alias SSHClient.Config.Server

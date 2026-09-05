@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.SSH.PTYSession do
+defmodule SSHClient.SSH.PTYSession do
   @moduledoc """
   Manages an interactive pseudo-terminal (PTY) SSH session, bridging raw byte
   streams between an SSH channel and a client process.

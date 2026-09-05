@@ -1,4 +1,4 @@
-﻿defmodule SSHClient.SocketAPI do
+defmodule SSHClient.SocketAPI do
   @moduledoc """
   Unix domain socket server exposing server states and monitoring data as JSON.
 
