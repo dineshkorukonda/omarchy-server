@@ -59,6 +59,21 @@ defmodule SSHClient.ConfigTest do
       assert server.proxy_jump == "bastion.internal"
     end
 
+    test "parses auth_order list when provided and defaults when omitted" do
+      yaml = """
+      servers:
+        - host: key-then-pwd.internal
+          auth_order:
+            - key
+            - password
+        - host: default-auth.internal
+      """
+
+      assert {:ok, %Config{servers: [s1, s2]}} = Config.load_string(yaml)
+      assert s1.auth_order == [:key, :password]
+      assert s2.auth_order == [:key, :password, :keyboard_interactive]
+    end
+
     test "fails fast when YAML syntax is invalid" do
       invalid_yaml = "servers: [unclosed list"
       assert {:error, message} = Config.load_string(invalid_yaml)

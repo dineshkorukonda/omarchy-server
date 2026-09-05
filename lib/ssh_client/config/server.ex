@@ -12,6 +12,8 @@ defmodule SSHClient.Config.Server do
     :host,
     :user,
     :proxy_jump,
+    :identity_file,
+    auth_order: [:key, :password, :keyboard_interactive],
     port: 22,
     checks: []
   ]
@@ -23,6 +25,8 @@ defmodule SSHClient.Config.Server do
           user: String.t() | nil,
           port: pos_integer(),
           proxy_jump: String.t() | nil,
+          identity_file: String.t() | nil,
+          auth_order: list(atom()),
           checks: list(Check.t())
         }
 
@@ -41,6 +45,11 @@ defmodule SSHClient.Config.Server do
       proxy_jump =
         Map.get(attrs, "ProxyJump") || Map.get(attrs, "proxy_jump") || Map.get(attrs, "proxyjump")
 
+      identity_file =
+        Map.get(attrs, "identity_file") || Map.get(attrs, "IdentityFile") || Map.get(attrs, "identityfile")
+
+      auth_order = parse_auth_order(attrs)
+
       server = %__MODULE__{
         id: to_string(id),
         name: to_string(name),
@@ -48,6 +57,8 @@ defmodule SSHClient.Config.Server do
         user: user && to_string(user),
         port: port,
         proxy_jump: proxy_jump && to_string(proxy_jump),
+        identity_file: identity_file && to_string(identity_file),
+        auth_order: auth_order,
         checks: checks
       }
 
@@ -109,5 +120,29 @@ defmodule SSHClient.Config.Server do
 
   defp parse_checks(_attrs) do
     {:ok, []}
+  end
+
+  defp parse_auth_order(attrs) do
+    raw_order =
+      Map.get(attrs, "auth_order") || Map.get(attrs, :auth_order) ||
+        Map.get(attrs, "auth_methods") || Map.get(attrs, :auth_methods)
+
+    case raw_order do
+      list when is_list(list) ->
+        Enum.map(list, fn
+          a when is_atom(a) -> a
+          s when is_binary(s) -> String.to_atom(s)
+          other -> other
+        end)
+
+      bin when is_binary(bin) ->
+        bin
+        |> String.split(",", trim: true)
+        |> Enum.map(&String.trim/1)
+        |> Enum.map(&String.to_atom/1)
+
+      _ ->
+        [:key, :password, :keyboard_interactive]
+    end
   end
 end
