@@ -130,8 +130,11 @@ defmodule SSHClient.ServiceActionTest do
 
       Process.sleep(50)
 
+      assert {:error, :confirmation_required} =
+               ServiceAction.run(server.id, "my-app", "systemctl", "restart", confirmed: false)
+
       for type <- ["systemctl", "docker", "pm2"], action <- ["restart", "stop"] do
-        assert {:ok, out} = ServiceAction.run(server.id, "my-app", type, action)
+        assert {:ok, out} = ServiceAction.run(server.id, "my-app", type, action, confirmed: true)
         assert out =~ "Success"
         assert_received {:exec_called, cmd}
         assert cmd =~ type

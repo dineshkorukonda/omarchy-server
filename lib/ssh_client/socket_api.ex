@@ -243,7 +243,8 @@ defmodule SSHClient.SocketAPI do
               {:ok, safe_action} ->
                 case ServerManager.get_server(server_id) do
                   {:ok, _server} ->
-                    case ServiceAction.run(server_id, service, type, safe_action) do
+                    confirmed = Map.get(cmd, "confirmed", true)
+                    case ServiceAction.run(server_id, service, type, safe_action, confirmed: confirmed) do
                       {:ok, output} ->
                         %{
                           status: "ok",
