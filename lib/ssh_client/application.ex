@@ -24,6 +24,8 @@ defmodule SSHClient.Application do
     children = [
       # Phoenix HTTP server
       SSHClientWeb.Endpoint,
+      # Desktop Window or headless fallback
+      SSHClient.Window,
       # SSH backend
       {Registry, keys: :unique, name: SSHClient.WorkerRegistry},
       SSHClient.ServerSupervisor,
