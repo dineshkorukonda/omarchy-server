@@ -358,8 +358,8 @@ defmodule SSHClient.SSH do
   @spec connect_cancelable(Host.t() | Server.t() | map(), keyword()) ::
           {:ok, Connection.t(), pid()} | {:error, term()}
   def connect_cancelable(target, opts \\ []) do
-    timeout = Keyword.get(opts, :timeout, 10_000)
-    parent = self()
+    _timeout = Keyword.get(opts, :timeout, 10_000)
+    _parent = self()
 
     task =
       Task.async(fn ->

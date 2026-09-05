@@ -238,7 +238,7 @@ defmodule SSHClient.SocketAPI do
              "service" => service,
              "type" => type,
              "action" => action
-           }} ->
+           } = cmd} ->
             case validate_service_action(action) do
               {:ok, safe_action} ->
                 case ServerManager.get_server(server_id) do
