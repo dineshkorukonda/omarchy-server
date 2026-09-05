@@ -412,15 +412,16 @@ defmodule SSHClientWeb.HostLive do
 
   @doc "Computes fuzzy match score for a server against a query."
   def fuzzy_score(server, query) when is_binary(query) do
-    target =
+    fields =
       [server[:name], server[:host], server[:id]]
       |> Enum.reject(&is_nil/1)
       |> Enum.map(&to_string/1)
       |> Enum.map(&String.downcase/1)
-      |> Enum.join(" ")
+
+    target = Enum.join(fields, " ")
 
     cond do
-      target == query -> 1000
+      query in fields or target == query -> 1000
       String.starts_with?(target, query) -> 500
       String.contains?(target, query) -> 300
       true -> 0
