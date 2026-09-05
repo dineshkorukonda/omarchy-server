@@ -1,11 +1,11 @@
-defmodule OmarchyServer.Integration.SSHDaemonIntegrationTest do
+﻿defmodule SSHClient.Integration.SSHDaemonIntegrationTest do
   use ExUnit.Case, async: false
 
-  alias OmarchyServer.Config.Server
-  alias OmarchyServer.InitSystem
-  alias OmarchyServer.Metrics
-  alias OmarchyServer.ServerWorker
-  alias OmarchyServer.SSH
+  alias SSHClient.Config.Server
+  alias SSHClient.InitSystem
+  alias SSHClient.Metrics
+  alias SSHClient.ServerWorker
+  alias SSHClient.SSH
 
   @moduletag :integration
 
@@ -92,8 +92,8 @@ defmodule OmarchyServer.Integration.SSHDaemonIntegrationTest do
   end
 
   test "ServerWorker connects, polls, and retrieves real state end to end" do
-    if Process.whereis(OmarchyServer.WorkerRegistry) == nil do
-      start_supervised!({Registry, keys: :unique, name: OmarchyServer.WorkerRegistry})
+    if Process.whereis(SSHClient.WorkerRegistry) == nil do
+      start_supervised!({Registry, keys: :unique, name: SSHClient.WorkerRegistry})
     end
 
     key_dir = Path.dirname(@key_path)
@@ -107,7 +107,7 @@ defmodule OmarchyServer.Integration.SSHDaemonIntegrationTest do
 
       _server, {:poll, conn, checks} ->
         with {:ok, metrics} <- Metrics.collect(conn),
-             {:ok, checks_map} <- OmarchyServer.ServiceChecks.check_all(checks, conn) do
+             {:ok, checks_map} <- SSHClient.ServiceChecks.check_all(checks, conn) do
           {:ok, %{metrics: metrics, checks: checks_map}}
         end
 
