@@ -10,163 +10,182 @@
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Typography: JetBrains Mono + Inter -->
+  <!-- Google Fonts: Poppins & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Poppins', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          },
+          colors: {
+            brand: {
+              red: '#dc2626',
+              lightred: '#ef4444',
+              darkred: '#991b1b'
+            }
+          }
+        }
+      }
+    }
+  </script>
 
   <style>
-    :root {
-      --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-      --font-mono: 'JetBrains Mono', monospace;
-    }
     body {
-      font-family: var(--font-sans);
+      font-family: 'Poppins', sans-serif;
+      background-color: #050505;
+      color: #e5e5e5;
     }
     code, pre, .font-mono {
-      font-family: var(--font-mono);
+      font-family: 'JetBrains Mono', monospace;
     }
-    .grid-dots {
-      background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-      background-size: 24px 24px;
+    ::selection {
+      background-color: #dc2626;
+      color: #ffffff;
     }
   </style>
 </head>
-<body class="min-h-screen bg-base-300 text-base-content flex flex-col antialiased selection:bg-amber-600/30 selection:text-neutral-100">
+<body class="min-h-screen bg-[#050505] text-neutral-200 flex flex-col antialiased">
 
   <!-- Header / Navigation -->
-  <header class="sticky top-0 z-50 border-b border-base-content/10 bg-base-300/90 backdrop-blur-md">
+  <header class="sticky top-0 z-50 border-b border-neutral-800 bg-[#050505]/95 backdrop-blur-md">
     <div class="navbar max-w-5xl mx-auto px-6 h-16">
       <div class="flex-1">
-        <a href="index.html" class="font-mono text-sm font-bold tracking-tight text-neutral-100 flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+        <a href="index.html" class="text-base font-bold tracking-tight text-white flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-red-600"></span>
           <span>ssh-client</span>
-          <span class="badge badge-sm badge-neutral font-mono text-[10px] ml-1">v0.0.1</span>
+          <span class="font-mono text-[10px] text-neutral-400 border border-neutral-800 px-1.5 py-0.5 rounded ml-1">v0.0.1</span>
         </a>
       </div>
-      <div class="flex-none gap-2 font-mono text-xs">
-        <a href="index.html" class="btn btn-ghost btn-sm text-neutral-100">Overview</a>
-        <a href="install.html" class="btn btn-ghost btn-sm text-neutral-400 hover:text-neutral-100">Install & FAQs</a>
-        <a href="changelog.html" class="btn btn-ghost btn-sm text-neutral-400 hover:text-neutral-100">Changelog</a>
-        <a href="https://github.com/dineshkorukonda/ssh-client" target="_blank" rel="noreferrer" class="btn btn-neutral btn-sm ml-2">GitHub ↗</a>
+      <div class="flex-none gap-2 font-medium text-xs">
+        <a href="index.html" class="btn btn-ghost btn-sm text-white hover:text-red-500">Overview</a>
+        <a href="install.html" class="btn btn-ghost btn-sm text-neutral-400 hover:text-white">Install & FAQs</a>
+        <a href="changelog.html" class="btn btn-ghost btn-sm text-neutral-400 hover:text-white">Changelog</a>
+        <a href="https://github.com/dineshkorukonda/ssh-client" target="_blank" rel="noreferrer" class="btn btn-sm bg-neutral-900 border border-neutral-700 text-white hover:border-red-600 hover:bg-neutral-800 ml-2">GitHub ↗</a>
       </div>
     </div>
   </header>
 
-  <main class="flex-grow max-w-5xl mx-auto w-full px-6 py-12 space-y-16">
+  <main class="flex-grow max-w-5xl mx-auto w-full px-6 py-14 space-y-16">
 
     <!-- Hero / Headline -->
     <section class="space-y-6 pt-4">
-      <div class="flex items-center gap-2 font-mono text-xs text-neutral-500 uppercase tracking-wider">
+      <div class="flex items-center gap-2 font-mono text-xs text-neutral-400 uppercase tracking-widest">
         <span>Desktop Client</span>
-        <span>/</span>
-        <span class="text-amber-500">Windows & Linux</span>
-        <span>/</span>
+        <span class="text-red-600">/</span>
+        <span class="text-red-500 font-semibold">Windows & Linux</span>
+        <span class="text-red-600">/</span>
         <span>Offline-First</span>
       </div>
 
-      <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-neutral-100 max-w-3xl leading-[1.15]">
-        Direct native transport SSH client with continuous infrastructure telemetry.
+      <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-white max-w-3xl leading-tight">
+        Native transport SSH client with continuous infrastructure telemetry.
       </h1>
 
-      <p class="font-mono text-sm sm:text-base text-neutral-400 max-w-2xl leading-relaxed">
-        Engineered with Erlang/OTP transport, OS credential stores, xterm.js terminal emulation, and zero telemetry beacons. No accounts, no cloud sync, no middleman.
+      <p class="text-sm sm:text-base text-neutral-400 max-w-2xl leading-relaxed font-normal">
+        Built on Erlang/OTP transport, OS credential stores, xterm.js terminal emulation, and zero telemetry. Completely functional in air-gapped environments without external accounts.
       </p>
 
-      <div class="flex flex-wrap items-center gap-4 pt-2 font-mono text-xs">
-        <a href="install.html" class="btn btn-primary btn-sm px-4">
+      <div class="flex flex-wrap items-center gap-4 pt-2 text-xs">
+        <a href="install.html" class="btn btn-sm bg-red-600 hover:bg-red-700 border-none text-white px-5 font-semibold">
           Installation Guide
         </a>
-        <a href="changelog.html" class="btn btn-outline btn-sm px-4">
+        <a href="changelog.html" class="btn btn-sm bg-transparent border border-neutral-700 text-neutral-200 hover:border-white hover:bg-neutral-900 px-5 font-medium">
           View Changelog
         </a>
-        <a href="https://github.com/dineshkorukonda/ssh-client/releases/tag/v0.0.1" target="_blank" rel="noreferrer" class="btn btn-ghost btn-sm text-neutral-400 hover:text-neutral-200">
+        <a href="https://github.com/dineshkorukonda/ssh-client/releases/tag/v0.0.1" target="_blank" rel="noreferrer" class="btn btn-sm btn-ghost text-neutral-400 hover:text-red-400 font-mono">
           GitHub Release v0.0.1 ↗
         </a>
       </div>
     </section>
 
-    <!-- Interactive Terminal & Live Telemetry Inspector -->
-    <section class="border border-base-content/10 bg-base-200 rounded-lg overflow-hidden shadow-2xl">
-      <div class="flex items-center justify-between border-b border-base-content/10 px-4 py-2.5 bg-base-300 font-mono text-xs text-neutral-400">
+    <!-- Terminal & Telemetry Preview -->
+    <section class="border border-neutral-800 bg-[#0c0c0c] rounded-lg overflow-hidden shadow-2xl">
+      <div class="flex items-center justify-between border-b border-neutral-800 px-4 py-2.5 bg-[#121212] font-mono text-xs text-neutral-400">
         <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-neutral-700"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-red-600"></span>
           <span class="w-2.5 h-2.5 rounded-full bg-neutral-700"></span>
           <span class="w-2.5 h-2.5 rounded-full bg-neutral-700"></span>
           <span class="ml-2 text-neutral-300">target: cluster-primary (10.240.0.12:22)</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-          <span class="text-neutral-400">active (publickey: ed25519)</span>
+          <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+          <span class="text-neutral-300">active (publickey: ed25519)</span>
         </div>
       </div>
 
       <div class="p-6 font-mono text-xs leading-relaxed space-y-4 overflow-x-auto text-neutral-300">
         <div class="space-y-1 text-neutral-400">
-          <p><span class="text-neutral-600">$</span> ssh-client connect cluster-primary</p>
-          <p class="text-neutral-400">[keychain] Retrieved key credentials from OS Credential Manager (id_ed25519)</p>
+          <p><span class="text-red-500">$</span> ssh-client connect cluster-primary</p>
+          <p class="text-neutral-400">[keychain] Retrieved key credentials from Windows Credential Manager (id_ed25519)</p>
           <p class="text-neutral-400">[hostkey] Verified server fingerprint SHA256:4aK9W1Fm8Dq7...</p>
-          <p class="text-neutral-100 font-semibold pt-1">Linux cluster-primary 6.8.0-45-generic x86_64 SMP</p>
+          <p class="text-white font-semibold pt-1">Linux cluster-primary 6.8.0-45-generic x86_64 SMP</p>
         </div>
 
-        <!-- Live Server Metric Grid -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 py-3 px-4 bg-base-300/70 border border-base-content/5 rounded">
+        <!-- Metric Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 py-3 px-4 bg-[#141414] border border-neutral-800 rounded">
           <div>
-            <div class="text-[10px] text-neutral-500 uppercase tracking-wider">CPU Utilization</div>
-            <div class="text-sm font-bold text-neutral-100">12.8% <span class="text-[10px] font-normal text-neutral-500">8 cores</span></div>
+            <div class="text-[10px] text-neutral-500 uppercase tracking-wider font-mono">CPU Utilization</div>
+            <div class="text-sm font-bold text-white">12.8% <span class="text-[10px] font-normal text-neutral-500 font-mono">8 cores</span></div>
           </div>
           <div>
-            <div class="text-[10px] text-neutral-500 uppercase tracking-wider">Memory Allocated</div>
-            <div class="text-sm font-bold text-neutral-100">4.1 GB <span class="text-[10px] font-normal text-neutral-500">/ 32 GB</span></div>
+            <div class="text-[10px] text-neutral-500 uppercase tracking-wider font-mono">Memory Allocated</div>
+            <div class="text-sm font-bold text-white">4.1 GB <span class="text-[10px] font-normal text-neutral-500 font-mono">/ 32 GB</span></div>
           </div>
           <div>
-            <div class="text-[10px] text-neutral-500 uppercase tracking-wider">Disk Storage</div>
-            <div class="text-sm font-bold text-neutral-100">38% <span class="text-[10px] font-normal text-neutral-500">nvme0n1</span></div>
+            <div class="text-[10px] text-neutral-500 uppercase tracking-wider font-mono">Disk Storage</div>
+            <div class="text-sm font-bold text-white">38% <span class="text-[10px] font-normal text-neutral-500 font-mono">nvme0n1</span></div>
           </div>
           <div>
-            <div class="text-[10px] text-neutral-500 uppercase tracking-wider">System Load</div>
-            <div class="text-sm font-bold text-neutral-100">0.24 <span class="text-[10px] font-normal text-neutral-500">0.19 0.15</span></div>
+            <div class="text-[10px] text-neutral-500 uppercase tracking-wider font-mono">System Load</div>
+            <div class="text-sm font-bold text-white">0.24 <span class="text-[10px] font-normal text-neutral-500 font-mono">0.19 0.15</span></div>
           </div>
         </div>
 
         <!-- Command simulation -->
         <div class="space-y-1">
-          <p class="text-neutral-400"><span class="text-neutral-500">user@cluster-primary:~$</span> systemctl status docker --no-pager</p>
-          <p class="text-neutral-500">Active: active (running) since Thu 2026-09-03 04:12:00 UTC; 2 days ago</p>
-          <p class="text-neutral-400"><span class="text-neutral-500">user@cluster-primary:~$</span> <span class="inline-block w-2 h-4 bg-amber-500 align-middle"></span></p>
+          <p class="text-neutral-400"><span class="text-red-500">user@cluster-primary:~$</span> systemctl status docker --no-pager</p>
+          <p class="text-neutral-400">Active: active (running) since Thu 2026-09-03 04:12:00 UTC; 2 days ago</p>
+          <p class="text-neutral-400"><span class="text-red-500">user@cluster-primary:~$</span> <span class="inline-block w-2 h-4 bg-red-600 align-middle"></span></p>
         </div>
       </div>
     </section>
 
     <!-- Core Architecture Pillars -->
     <section class="space-y-8">
-      <div class="border-b border-base-content/10 pb-3">
-        <h2 class="font-mono text-sm font-bold uppercase tracking-wider text-amber-500">Architecture Invariants</h2>
-        <p class="text-xl font-bold text-neutral-100 mt-1">Design decisions that prioritize operational resilience</p>
+      <div class="border-b border-neutral-800 pb-3">
+        <h2 class="font-mono text-xs font-bold uppercase tracking-wider text-red-500">Architecture Invariants</h2>
+        <p class="text-xl font-bold text-white mt-1">Design decisions prioritizing security and minimal overhead</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="border border-base-content/10 bg-base-200 p-5 rounded-lg space-y-3">
-          <div class="font-mono text-xs text-neutral-500">01 / TRANSPORT</div>
-          <h3 class="font-bold text-neutral-100 text-base">Erlang Native :ssh Engine</h3>
-          <p class="text-xs text-neutral-400 leading-relaxed">
-            Eliminates reliance on external <code class="text-neutral-300">ssh</code> binaries or OpenSSH-for-Windows installations. Executes via OTP <code class="text-neutral-300">:ssh_connection</code> directly in runtime memory.
+        <div class="border border-neutral-800 bg-[#0c0c0c] p-6 rounded-lg space-y-3 hover:border-red-900/60 transition-colors">
+          <div class="font-mono text-xs text-red-500 font-semibold">01 / TRANSPORT</div>
+          <h3 class="font-bold text-white text-base">Erlang Native :ssh Engine</h3>
+          <p class="text-xs text-neutral-400 leading-relaxed font-normal">
+            Eliminates reliance on external <code class="text-neutral-300 font-mono">ssh</code> binaries or OpenSSH-for-Windows. Connects directly via OTP <code class="text-neutral-300 font-mono">:ssh_connection</code> in BEAM memory.
           </p>
         </div>
 
-        <div class="border border-base-content/10 bg-base-200 p-5 rounded-lg space-y-3">
-          <div class="font-mono text-xs text-neutral-500">02 / CREDENTIALS</div>
-          <h3 class="font-bold text-neutral-100 text-base">OS Credential Stores</h3>
-          <p class="text-xs text-neutral-400 leading-relaxed">
-            Secrets never touch local config files. Integrates with Windows Credential Manager and Linux Secret Service (<code class="text-neutral-300">libsecret</code>) with ephemeral in-memory passphrase caching.
+        <div class="border border-neutral-800 bg-[#0c0c0c] p-6 rounded-lg space-y-3 hover:border-red-900/60 transition-colors">
+          <div class="font-mono text-xs text-red-500 font-semibold">02 / CREDENTIALS</div>
+          <h3 class="font-bold text-white text-base">OS Credential Stores</h3>
+          <p class="text-xs text-neutral-400 leading-relaxed font-normal">
+            Secrets never touch plaintext configs. Direct integration with Windows Credential Manager and Linux Secret Service (<code class="text-neutral-300 font-mono">libsecret</code>) with memory-only passphrase caching.
           </p>
         </div>
 
-        <div class="border border-base-content/10 bg-base-200 p-5 rounded-lg space-y-3">
-          <div class="font-mono text-xs text-neutral-500">03 / RESOURCE EFFICIENCY</div>
-          <h3 class="font-bold text-neutral-100 text-base">Focus-Aware Polling</h3>
-          <p class="text-xs text-neutral-400 leading-relaxed">
-            Background hosts dynamically throttle telemetry checks to backoff intervals. Non-interactive <code class="text-neutral-300">exec</code> channels are used for metrics rather than holding open idle PTY shells.
+        <div class="border border-neutral-800 bg-[#0c0c0c] p-6 rounded-lg space-y-3 hover:border-red-900/60 transition-colors">
+          <div class="font-mono text-xs text-red-500 font-semibold">03 / RESOURCE EFFICIENCY</div>
+          <h3 class="font-bold text-white text-base">Focus-Aware Polling</h3>
+          <p class="text-xs text-neutral-400 leading-relaxed font-normal">
+            Background hosts dynamically throttle telemetry checks. Non-interactive <code class="text-neutral-300 font-mono">exec</code> channels are used for metrics rather than holding open idle PTY shells.
           </p>
         </div>
       </div>
@@ -174,64 +193,64 @@
 
     <!-- Feature Table Matrix -->
     <section class="space-y-6">
-      <div class="border-b border-base-content/10 pb-3">
-        <h2 class="font-mono text-sm font-bold uppercase tracking-wider text-amber-500">Technical Specifications</h2>
-        <p class="text-xl font-bold text-neutral-100 mt-1">Runtime capabilities and subsystems</p>
+      <div class="border-b border-neutral-800 pb-3">
+        <h2 class="font-mono text-xs font-bold uppercase tracking-wider text-red-500">Technical Specifications</h2>
+        <p class="text-xl font-bold text-white mt-1">Runtime capabilities and subsystems</p>
       </div>
 
-      <div class="overflow-x-auto border border-base-content/10 bg-base-200 rounded-lg">
-        <table class="table table-zebra font-mono text-xs">
+      <div class="overflow-x-auto border border-neutral-800 bg-[#0c0c0c] rounded-lg">
+        <table class="table w-full text-xs">
           <thead>
-            <tr class="border-b border-base-content/10 text-neutral-400">
-              <th>Subsystem</th>
-              <th>Implementation</th>
-              <th>Supported Platforms</th>
+            <tr class="border-b border-neutral-800 text-neutral-400 font-mono">
+              <th class="py-3 px-4">Subsystem</th>
+              <th class="py-3 px-4">Implementation</th>
+              <th class="py-3 px-4">Supported Platforms</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody class="divide-y divide-neutral-800/60 font-mono text-neutral-300">
             <tr>
-              <td class="font-semibold text-neutral-200">Interactive Terminal</td>
-              <td class="text-neutral-400">xterm.js container bridged over Phoenix Channel to Erlang PTY session with resize and bracketed paste</td>
-              <td class="text-neutral-300">Windows 10/11, Linux x64</td>
+              <td class="py-3 px-4 font-semibold text-white">Interactive Terminal</td>
+              <td class="py-3 px-4 text-neutral-400">xterm.js container bridged over Phoenix Channel to Erlang PTY session with resize and bracketed paste</td>
+              <td class="py-3 px-4 text-neutral-300">Windows 10/11, Linux x64</td>
             </tr>
             <tr>
-              <td class="font-semibold text-neutral-200">Host Management</td>
-              <td class="text-neutral-400">OpenSSH ~/.ssh/config auto-importer, user@host:port quick parser, ranked fuzzy search</td>
-              <td class="text-neutral-300">Cross-platform</td>
+              <td class="py-3 px-4 font-semibold text-white">Host Management</td>
+              <td class="py-3 px-4 text-neutral-400">OpenSSH ~/.ssh/config auto-importer, user@host:port quick parser, ranked fuzzy search</td>
+              <td class="py-3 px-4 text-neutral-300">Cross-platform</td>
             </tr>
             <tr>
-              <td class="font-semibold text-neutral-200">Host Key Verification</td>
-              <td class="text-neutral-400">Reject-by-default on fingerprint mismatch with visual diff accept/reject dialog</td>
-              <td class="text-neutral-300">Cross-platform</td>
+              <td class="py-3 px-4 font-semibold text-white">Host Key Verification</td>
+              <td class="py-3 px-4 text-neutral-400">Reject-by-default on fingerprint mismatch with visual diff accept/reject dialog</td>
+              <td class="py-3 px-4 text-neutral-300">Cross-platform</td>
             </tr>
             <tr>
-              <td class="font-semibold text-neutral-200">Remote Operations</td>
-              <td class="text-neutral-400">One-click systemd unit, Docker container, and PM2 process actions + live journalctl tailing</td>
-              <td class="text-neutral-300">Linux remote targets</td>
+              <td class="py-3 px-4 font-semibold text-white">Remote Operations</td>
+              <td class="py-3 px-4 text-neutral-400">One-click systemd unit, Docker container, and PM2 process actions + live journalctl tailing</td>
+              <td class="py-3 px-4 text-neutral-300">Linux remote targets</td>
             </tr>
             <tr>
-              <td class="font-semibold text-neutral-200">TUI Fallback</td>
-              <td class="text-neutral-400">Native ssh-client-tui CLI script adapted for Windows Terminal and Linux VT consoles</td>
-              <td class="text-neutral-300">Windows Terminal, Linux VT</td>
+              <td class="py-3 px-4 font-semibold text-white">TUI Fallback</td>
+              <td class="py-3 px-4 text-neutral-400">Native ssh-client-tui CLI script adapted for Windows Terminal and Linux VT consoles</td>
+              <td class="py-3 px-4 text-neutral-300">Windows Terminal, Linux VT</td>
             </tr>
           </tbody>
         </table>
       </div>
     </section>
 
-    <!-- Quick Download Action Box -->
-    <section class="border border-base-content/10 bg-base-200 p-8 rounded-lg space-y-4">
+    <!-- Download Banner -->
+    <section class="border border-neutral-800 bg-[#0c0c0c] p-8 rounded-lg space-y-4">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 class="text-lg font-bold text-neutral-100 font-mono">Ready to deploy?</h3>
-          <p class="text-xs text-neutral-400 font-mono mt-1">Precompiled release bundles for Windows x64 and Linux x64 (v0.0.1).</p>
+          <h3 class="text-lg font-bold text-white">Download Standalone Releases</h3>
+          <p class="text-xs text-neutral-400 font-mono mt-1">Precompiled bundles for Windows x64 and Linux x64 (v0.0.1).</p>
         </div>
-        <div class="flex gap-3 font-mono text-xs">
-          <a href="https://github.com/dineshkorukonda/ssh-client/releases/download/v0.0.1/ssh-client-windows-x64.zip" class="btn btn-sm btn-primary">
-            Download Windows (.zip)
+        <div class="flex gap-3 text-xs font-semibold">
+          <a href="https://github.com/dineshkorukonda/ssh-client/releases/download/v0.0.1/ssh-client-windows-x64.zip" class="btn btn-sm bg-red-600 hover:bg-red-700 border-none text-white font-mono">
+            Windows (.zip)
           </a>
-          <a href="https://github.com/dineshkorukonda/ssh-client/releases/download/v0.0.1/ssh-client-linux-x64.tar.gz" class="btn btn-sm btn-neutral">
-            Download Linux (.tar.gz)
+          <a href="https://github.com/dineshkorukonda/ssh-client/releases/download/v0.0.1/ssh-client-linux-x64.tar.gz" class="btn btn-sm bg-neutral-900 border border-neutral-700 hover:border-red-600 text-white font-mono">
+            Linux (.tar.gz)
           </a>
         </div>
       </div>
@@ -240,13 +259,13 @@
   </main>
 
   <!-- Footer -->
-  <footer class="border-t border-base-content/10 bg-base-300/80 py-10 mt-16 font-mono text-xs text-neutral-500">
+  <footer class="border-t border-neutral-800 bg-[#050505] py-10 mt-16 text-xs text-neutral-500 font-mono">
     <div class="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-      <p>ssh-client &bull; Open source under MIT License &bull; Offline & Zero Telemetry</p>
+      <p>ssh-client &bull; MIT License &bull; Offline & Zero Telemetry</p>
       <div class="flex gap-6">
-        <a href="install.html" class="hover:text-neutral-300 transition-colors">Install & FAQs</a>
-        <a href="changelog.html" class="hover:text-neutral-300 transition-colors">Changelog</a>
-        <a href="https://github.com/dineshkorukonda/ssh-client" target="_blank" rel="noreferrer" class="hover:text-neutral-300 transition-colors">GitHub Repository</a>
+        <a href="install.html" class="hover:text-red-500 transition-colors">Install & FAQs</a>
+        <a href="changelog.html" class="hover:text-red-500 transition-colors">Changelog</a>
+        <a href="https://github.com/dineshkorukonda/ssh-client" target="_blank" rel="noreferrer" class="hover:text-white transition-colors">GitHub Repository</a>
       </div>
     </div>
   </footer>
