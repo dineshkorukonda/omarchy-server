@@ -40,9 +40,32 @@ defmodule SSHClientWeb.TerminalChannel do
     {:error, %{reason: "unauthorized"}}
   end
 
+  @bracketed_paste_start "\e[200~"
+  @bracketed_paste_end "\e[201~"
+
+  @doc """
+  Wraps multi-line or paste content in ANSI bracketed paste escape sequences
+  (\e[200~ ... \e[201~) so the remote shell interprets it as a single chunk
+  rather than executing line by line.
+  """
+  def wrap_bracketed_paste(text) when is_binary(text) do
+    @bracketed_paste_start <> text <> @bracketed_paste_end
+  end
+
   @doc """
   Handles client events from xterm.js.
   """
+  def handle_in("pty:input", %{"data" => data, "bracketed" => true}, socket_state)
+      when is_binary(data) do
+    wrapped = wrap_bracketed_paste(data)
+    handle_in("pty:input", %{"data" => wrapped}, socket_state)
+  end
+
+  def handle_in("pty:paste", %{"data" => data}, socket_state) when is_binary(data) do
+    wrapped = wrap_bracketed_paste(data)
+    handle_in("pty:input", %{"data" => wrapped}, socket_state)
+  end
+
   def handle_in("pty:input", %{"data" => data}, socket_state) when is_binary(data) do
     terminal = Map.get(socket_state, :terminal)
 
