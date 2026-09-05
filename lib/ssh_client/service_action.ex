@@ -14,38 +14,47 @@ defmodule SSHClient.ServiceAction do
 
   @doc """
   Runs a service action on the target server.
+  Requires `confirmed: true` option for destructive actions (e.g. stop/restart).
 
   Looks up the running ServerWorker for `server_id` and executes the action
   command over its SSH connection via the worker's runner. Returns the command
   output on success.
   """
-  @spec run(String.t(), String.t(), String.t(), String.t()) ::
+  @spec run(String.t(), String.t(), String.t(), String.t(), keyword()) ::
           {:ok, String.t()} | {:error, term()}
-  def run(server_id, service, type, action)
+  def run(server_id, service, type, action, opts \\ [])
+
+  def run(server_id, service, type, action, opts)
       when action in @allowed_actions and type in @allowed_types do
-    safe_service = sanitize_name(service)
+    confirmed = Keyword.get(opts, :confirmed, false)
 
-    case build_action_command(type, safe_service, action) do
-      {:ok, cmd} ->
-        target = ServerWorker.resolve_worker_pub(server_id)
+    if not confirmed do
+      {:error, :confirmation_required}
+    else
+      safe_service = sanitize_name(service)
 
-        try do
-          case GenServer.call(target, {:exec_cmd, cmd}, 15_000) do
-            {:ok, output} -> {:ok, output}
-            {:error, reason} -> {:error, reason}
+      case build_action_command(type, safe_service, action) do
+        {:ok, cmd} ->
+          target = ServerWorker.resolve_worker_pub(server_id)
+
+          try do
+            case GenServer.call(target, {:exec_cmd, cmd}, 15_000) do
+              {:ok, output} -> {:ok, output}
+              {:error, reason} -> {:error, reason}
+            end
+          catch
+            :exit, {:noproc, _} -> {:error, :server_not_connected}
+            :exit, {:normal, _} -> {:error, :server_not_connected}
+            :exit, reason -> {:error, {:exec_failed, reason}}
           end
-        catch
-          :exit, {:noproc, _} -> {:error, :server_not_connected}
-          :exit, {:normal, _} -> {:error, :server_not_connected}
-          :exit, reason -> {:error, {:exec_failed, reason}}
-        end
 
-      {:error, reason} ->
-        {:error, reason}
+        {:error, reason} ->
+          {:error, reason}
+      end
     end
   end
 
-  def run(_server_id, _service, type, action) do
+  def run(_server_id, _service, type, action, _opts) do
     cond do
       action not in @allowed_actions ->
         {:error, "unsupported action: #{action}"}
