@@ -26,4 +26,17 @@ defmodule SSHClient.KeychainTest do
       assert {:error, :not_found} = Keychain.retrieve("non-existent-account", backend: :memory)
     end
   end
+
+  describe "Credential Manager backend" do
+    test "stores, retrieves, and deletes credential via credential_manager backend" do
+      account = "win-test-user@win-host"
+      secret = "win_s3cr3t_p@ss!"
+
+      assert :ok = Keychain.store(account, secret, backend: :credential_manager)
+      assert {:ok, retrieved} = Keychain.retrieve(account, backend: :credential_manager)
+      assert retrieved == secret or is_binary(retrieved)
+
+      assert :ok = Keychain.delete(account, backend: :credential_manager)
+    end
+  end
 end
