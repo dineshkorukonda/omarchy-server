@@ -42,23 +42,25 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "..\_build\prod\rel\ssh_client\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\{#AppName}"; Filename: "{app}\bin\launch-gui.bat"; WorkingDir: "{app}"
+Name: "{group}\{#AppName}"; Filename: "{app}\bin\launch-gui.vbs"; WorkingDir: "{app}"
 Name: "{group}\{cm:UninstallProgram,{#AppName}}"; Filename: "{uninstallexe}"
-Name: "{commondesktop}\{#AppName}"; Filename: "{app}\bin\launch-gui.bat"; Tasks: desktopicon; WorkingDir: "{app}"
+Name: "{commondesktop}\{#AppName}"; Filename: "{app}\bin\launch-gui.vbs"; Tasks: desktopicon; WorkingDir: "{app}"
 
 [Run]
-Filename: "{app}\bin\launch-gui.bat"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\bin\launch-gui.vbs"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
 Filename: "{app}\bin\{#AppExeName}"; Parameters: "stop"; RunOnceId: "StopService"; Flags: nowait
 
 [Code]
-// Open browser after install so user sees the GUI
-procedure CurStepChanged(CurStep: TSetupStep);
+// Close any running daemon instances before installation begins to prevent locked file errors
+function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   ErrorCode: Integer;
 begin
-  if CurStep = ssPostInstall then begin
-    ShellExec('open', 'http://localhost:4000', '', '', SW_SHOW, ewNoWait, ErrorCode);
-  end;
+  Result := '';
+  Exec('taskkill.exe', '/F /IM erl.exe /T', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
+  Exec('taskkill.exe', '/F /IM werl.exe /T', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
+  Exec('taskkill.exe', '/F /IM beam.smp /T', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
+  Exec('taskkill.exe', '/F /IM epmd.exe /T', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
 end;

@@ -112,6 +112,7 @@ jobs:
           $env:MIX_ENV = "prod"
           mix release ssh_client
           Copy-Item priv\launch-gui.bat _build\prod\rel\ssh_client\bin\launch-gui.bat
+          Copy-Item priv\launch-gui.vbs _build\prod\rel\ssh_client\bin\launch-gui.vbs
 
       - name: Archive Windows Release (zip)
         shell: pwsh
