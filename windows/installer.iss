@@ -22,6 +22,7 @@ AllowNoIcons=yes
 LicenseFile=..\LICENSE
 OutputDir=..\installer
 OutputBaseFilename=ssh-client-setup-v{#AppVersion}-windows-x64
+SetupIconFile=app.ico
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
@@ -29,7 +30,7 @@ PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayName={#AppName}
-UninstallDisplayIcon={app}\bin\erl.exe
+UninstallDisplayIcon={app}\app.ico
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -40,11 +41,12 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 ; Ship the entire OTP release tree
 Source: "..\_build\prod\rel\ssh_client\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "app.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\{#AppName}"; Filename: "wscript.exe"; Parameters: """{app}\bin\launch-gui.vbs"""; WorkingDir: "{app}"
+Name: "{group}\{#AppName}"; Filename: "wscript.exe"; Parameters: """{app}\bin\launch-gui.vbs"""; WorkingDir: "{app}"; IconFilename: "{app}\app.ico"
 Name: "{group}\{cm:UninstallProgram,{#AppName}}"; Filename: "{uninstallexe}"
-Name: "{commondesktop}\{#AppName}"; Filename: "wscript.exe"; Parameters: """{app}\bin\launch-gui.vbs"""; Tasks: desktopicon; WorkingDir: "{app}"
+Name: "{commondesktop}\{#AppName}"; Filename: "wscript.exe"; Parameters: """{app}\bin\launch-gui.vbs"""; Tasks: desktopicon; WorkingDir: "{app}"; IconFilename: "{app}\app.ico"
 
 [Run]
 Filename: "{app}\bin\launch-gui.vbs"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: shellexec nowait postinstall skipifsilent

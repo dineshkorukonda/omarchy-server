@@ -90,9 +90,12 @@ defmodule SSHClientWeb.LogsLive do
     <div class="flex h-full min-h-screen bg-[#050505]">
       <!-- Sidebar -->
       <aside class="w-56 bg-[#0a0a0a] border-r border-[#1f1f1f] flex flex-col shrink-0">
-        <div class="px-5 py-5 border-b border-[#1f1f1f]">
-          <span class="text-white font-semibold text-sm tracking-tight">ssh-client</span>
-          <span class="block text-[11px] text-zinc-600 font-mono mt-0.5">v<%= @version %></span>
+        <div class="px-5 py-4 border-b border-[#1f1f1f] flex items-center gap-3">
+          <img src="/images/icon.png" alt="Logo" class="w-7 h-7 rounded-md invert" />
+          <div>
+            <span class="text-white font-semibold text-sm tracking-tight block">ssh-client</span>
+            <span class="block text-[10px] text-zinc-600 font-mono">v<%= @version %></span>
+          </div>
         </div>
         <nav class="flex-1 px-3 py-4 space-y-0.5">
           <a
