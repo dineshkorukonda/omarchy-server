@@ -42,12 +42,12 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "..\_build\prod\rel\ssh_client\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\{#AppName}"; Filename: "{app}\bin\launch-gui.vbs"; WorkingDir: "{app}"
+Name: "{group}\{#AppName}"; Filename: "wscript.exe"; Parameters: """{app}\bin\launch-gui.vbs"""; WorkingDir: "{app}"
 Name: "{group}\{cm:UninstallProgram,{#AppName}}"; Filename: "{uninstallexe}"
-Name: "{commondesktop}\{#AppName}"; Filename: "{app}\bin\launch-gui.vbs"; Tasks: desktopicon; WorkingDir: "{app}"
+Name: "{commondesktop}\{#AppName}"; Filename: "wscript.exe"; Parameters: """{app}\bin\launch-gui.vbs"""; Tasks: desktopicon; WorkingDir: "{app}"
 
 [Run]
-Filename: "{app}\bin\launch-gui.vbs"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\bin\launch-gui.vbs"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: shellexec nowait postinstall skipifsilent
 
 [UninstallRun]
 Filename: "{app}\bin\{#AppExeName}"; Parameters: "stop"; RunOnceId: "StopService"; Flags: nowait
