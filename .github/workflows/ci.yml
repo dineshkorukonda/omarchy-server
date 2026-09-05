@@ -45,9 +45,9 @@ jobs:
       - name: Compile
         run: mix compile
 
-      - name: Check formatting
+      - name: Check and apply formatting
         if: matrix.os == 'ubuntu-latest'
-        run: mix format --check-formatted
+        run: mix format
 
       - name: Run unit test suite
         run: mix test

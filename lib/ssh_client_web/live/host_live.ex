@@ -123,6 +123,9 @@ defmodule SSHClientWeb.HostLive do
       |> Enum.map(&String.downcase/1)
       |> Enum.join(" ")
 
+    words = String.split(target_str, ~r/\s+/)
+    word_initials = words |> Enum.map(&String.slice(&1, 0, 1)) |> Enum.join("")
+
     cond do
       target_str == query ->
         1000
@@ -130,10 +133,19 @@ defmodule SSHClientWeb.HostLive do
       String.starts_with?(target_str, query) ->
         500
 
+      Enum.any?(words, &String.starts_with?(&1, query)) ->
+        400
+
       String.contains?(target_str, query) ->
         200 + (100 - min(String.length(target_str), 100))
 
-      subsequence_match?(String.to_charlist(query), String.to_charlist(target_str)) ->
+      String.starts_with?(word_initials, query) ->
+        150
+
+      subsequence_match?(String.to_charlist(query), String.to_charlist(word_initials)) ->
+        100
+
+      String.length(query) >= 3 and subsequence_match?(String.to_charlist(query), String.to_charlist(target_str)) ->
         50
 
       true ->
@@ -186,22 +198,22 @@ defmodule SSHClientWeb.HostLive do
     server_rows =
       Enum.map(servers, fn server ->
         """
-        <tr class="host-row hover:bg-zinc-800/50 cursor-pointer" data-id="\#{server.id}">
-          <td class="px-4 py-3 font-medium text-white">\#{server.name}</td>
-          <td class="px-4 py-3 text-zinc-400 font-mono text-sm">\#{server.host}</td>
+        <tr class="host-row hover:bg-zinc-800/50 cursor-pointer" data-id="#{server.id}">
+          <td class="px-4 py-3 font-medium text-white">#{server.name}</td>
+          <td class="px-4 py-3 text-zinc-400 font-mono text-sm">#{server.host}</td>
           <td class="px-4 py-3">
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium \#{server.status_badge_color}">
-              \#{server.status}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium #{server.status_badge_color}">
+              #{server.status}
             </span>
           </td>
-          <td class="px-4 py-3 text-zinc-300 text-sm">\#{server.cpu_percent}%</td>
-          <td class="px-4 py-3 text-zinc-300 text-sm">\#{server.ram_percent}%</td>
-          <td class="px-4 py-3 text-zinc-300 text-sm">\#{server.disk_percent}%</td>
+          <td class="px-4 py-3 text-zinc-300 text-sm">#{server.cpu_percent}%</td>
+          <td class="px-4 py-3 text-zinc-300 text-sm">#{server.ram_percent}%</td>
+          <td class="px-4 py-3 text-zinc-300 text-sm">#{server.disk_percent}%</td>
           <td class="px-4 py-3 text-right">
-            <button class="px-2 py-1 bg-zinc-700 hover:bg-zinc-600 text-white rounded text-xs" phx-click="poll_now" phx-value-id="\#{server.id}">
+            <button class="px-2 py-1 bg-zinc-700 hover:bg-zinc-600 text-white rounded text-xs" phx-click="poll_now" phx-value-id="#{server.id}">
               Refresh
             </button>
-            <button class="ml-2 px-2 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs" phx-click="connect" phx-value-id="\#{server.id}">
+            <button class="ml-2 px-2 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs" phx-click="connect" phx-value-id="#{server.id}">
               Terminal
             </button>
           </td>
@@ -219,7 +231,7 @@ defmodule SSHClientWeb.HostLive do
           <input
             type="text"
             placeholder="Search hosts..."
-            value="\#{assigns.filter}"
+            value="#{assigns.filter}"
             class="px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded-md text-sm text-zinc-200 focus:outline-none focus:border-blue-500"
             phx-keyup="search"
           />
@@ -247,7 +259,7 @@ defmodule SSHClientWeb.HostLive do
             </tr>
           </thead>
           <tbody class="divide-y divide-zinc-800/60">
-            \#{server_rows}
+            #{server_rows}
           </tbody>
         </table>
       </div>
