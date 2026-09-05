@@ -30,16 +30,22 @@ defmodule SSHClientWeb.HostLiveTest do
     assert formatted.ram_percent == 42.0
   end
 
-  test "filter_servers filters by query string" do
+  test "filter_servers filters and ranks by fuzzy subsequence query" do
     servers = [
-      %{id: "srv-1", name: "Web Alpha", host: "10.0.0.1"},
-      %{id: "srv-2", name: "DB Master", host: "10.0.0.2"}
+      %{id: "srv-1", name: "Production Web Alpha", host: "10.0.0.1", group: "prod"},
+      %{id: "srv-2", name: "Database Master", host: "10.0.0.2", group: "prod"},
+      %{id: "srv-3", name: "Staging Redis", host: "10.0.0.3", group: "staging"}
     ]
 
-    assert length(HostLive.filter_servers(servers, "")) == 2
-    assert length(HostLive.filter_servers(servers, "alpha")) == 1
-    assert hd(HostLive.filter_servers(servers, "alpha")).id == "srv-1"
-    assert length(HostLive.filter_servers(servers, "10.0.0.2")) == 1
+    assert length(HostLive.filter_servers(servers, "")) == 3
+    assert length(HostLive.filter_servers(servers, "pwa")) == 1
+    assert hd(HostLive.filter_servers(servers, "pwa")).id == "srv-1"
+    assert length(HostLive.filter_servers(servers, "db")) == 1
+    assert hd(HostLive.filter_servers(servers, "db")).id == "srv-2"
+
+    # Group filtering
+    assert length(HostLive.filter_servers(servers, "", "staging")) == 1
+    assert hd(HostLive.filter_servers(servers, "", "staging")).id == "srv-3"
   end
 
   test "render_html returns HTML string with table and rows" do
