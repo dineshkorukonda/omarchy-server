@@ -4,7 +4,7 @@ defmodule SSHClient.MixProject do
   def project do
     [
       app: :ssh_client,
-      version: "0.2.0",
+      version: "0.0.1",
       elixir: "~> 1.18 or ~> 1.19 or ~> 1.20",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
