@@ -55,8 +55,10 @@ Filename: "{app}\bin\{#AppExeName}"; Parameters: "stop"; RunOnceId: "StopService
 [Code]
 // Open browser after install so user sees the GUI
 procedure CurStepChanged(CurStep: TSetupStep);
+var
+  ErrorCode: Integer;
 begin
   if CurStep = ssPostInstall then begin
-    ShellExec('open', 'http://localhost:4000', '', '', SW_SHOW, ewNoWait, 0);
+    ShellExec('open', 'http://localhost:4000', '', '', SW_SHOW, ewNoWait, ErrorCode);
   end;
 end;
