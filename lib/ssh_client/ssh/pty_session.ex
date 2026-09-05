@@ -6,6 +6,7 @@ defmodule SSHClient.SSH.PTYSession do
 
   use GenServer, restart: :temporary
 
+  alias SSHClient.ActivityLog
   alias SSHClient.Config.Server
   alias SSHClient.SSH
   alias SSHClient.Terminal.Buffer
@@ -91,6 +92,8 @@ defmodule SSHClient.SSH.PTYSession do
       buffer: buffer
     }
 
+    ActivityLog.info(server.id, "Initiating interactive PTY terminal session (#{cols}x#{rows})")
+
     {:ok, state, {:continue, :connect}}
   end
 
@@ -100,15 +103,18 @@ defmodule SSHClient.SSH.PTYSession do
       {:ok, conn} ->
         case SSH.open_pty(conn, cols: state.cols, rows: state.rows, term: state.term) do
           {:ok, channel_id} ->
+            ActivityLog.info(state.server.id, "Terminal PTY channel established successfully")
             notify_client(state, {:pty_connected, self()})
             {:noreply, %{state | connection: conn, channel_id: channel_id}}
 
           {:error, reason} ->
+            ActivityLog.error(state.server.id, "Failed to open PTY channel: #{inspect(reason)}", reason)
             notify_client(state, {:pty_error, reason})
             {:stop, {:pty_failed, reason}, state}
         end
 
       {:error, reason} ->
+        ActivityLog.error(state.server.id, "Terminal SSH connection failed: #{inspect(reason)}", reason)
         notify_client(state, {:pty_error, reason})
         {:stop, {:connect_failed, reason}, state}
     end
@@ -175,6 +181,7 @@ defmodule SSHClient.SSH.PTYSession do
   @impl true
   def handle_info({:ssh_cm, _conn_ref, {:closed, channel_id}}, state) do
     if channel_id == state.channel_id do
+      ActivityLog.info(state.server.id, "Terminal PTY channel closed by remote host")
       notify_client(state, {:pty_closed, self()})
     end
 
@@ -184,6 +191,7 @@ defmodule SSHClient.SSH.PTYSession do
   # Monitor client process — if client exits, terminate session
   @impl true
   def handle_info({:DOWN, ref, :process, _pid, _reason}, %{client_ref: ref} = state) do
+    ActivityLog.info(state.server.id, "Terminal client LiveView disconnected, closing PTY session")
     {:stop, :normal, state}
   end
 

@@ -69,13 +69,28 @@
 
           lv.pushEvent("terminal_ready", {});
 
+          this.handleEvent("terminal_output", ({ data }) => {
+            term.write(data);
+          });
+
           term.onData(function(data) {
             lv.pushEvent("terminal_data", { data: data });
           });
 
-          window.addEventListener('resize', () => {
-            if (fitAddon) fitAddon.fit();
-          });
+          const onResize = () => {
+            if (fitAddon) {
+              fitAddon.fit();
+              lv.pushEvent("resize", { cols: term.cols, rows: term.rows });
+            }
+          };
+
+          window.addEventListener('resize', onResize);
+          this.onResize = onResize;
+          this.term = term;
+        },
+        destroyed() {
+          if (this.onResize) window.removeEventListener('resize', this.onResize);
+          if (this.term) this.term.dispose();
         }
       };
     </script>

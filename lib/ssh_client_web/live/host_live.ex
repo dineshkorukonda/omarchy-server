@@ -156,17 +156,35 @@ defmodule SSHClientWeb.HostLive do
           <span class="block text-[11px] text-zinc-600 font-mono mt-0.5">v0.0.1</span>
         </div>
         <nav class="flex-1 px-3 py-4 space-y-0.5">
-          <a href="/" class="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-blue-600/10 text-blue-400 text-sm font-medium">
+          <a
+            href="/"
+            class="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-blue-600/10 text-blue-400 text-sm font-medium"
+          >
             Hosts
           </a>
-          <a href="#" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-white/5 text-sm font-medium transition-colors">
+          <a
+            href="/logs"
+            class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-white/5 text-sm font-medium transition-colors"
+          >
+            Logs
+          </a>
+          <a
+            href="/settings"
+            class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-white/5 text-sm font-medium transition-colors"
+          >
             Settings
           </a>
         </nav>
-        <div class="px-5 py-4 border-t border-[#1f1f1f]">
+        <div class="px-5 py-4 border-t border-[#1f1f1f] flex items-center justify-between">
           <span class="text-[11px] text-zinc-700">
             <%= length(@servers) %> host<%= if length(@servers) != 1, do: "s" %>
           </span>
+          <a
+            href="/settings"
+            class="text-[10px] text-blue-500 hover:text-blue-400 font-mono transition-colors"
+          >
+            Update
+          </a>
         </div>
       </aside>
 
@@ -234,9 +252,18 @@ defmodule SSHClientWeb.HostLive do
                       <%= server.host %>
                     </td>
                     <td class="px-6 py-3.5">
-                      <span class={["inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium font-mono tracking-wide", badge_class(server.status)]}>
-                        <%= server.status %>
-                      </span>
+                      <div class="flex items-center gap-1.5">
+                        <span class={["inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium font-mono tracking-wide", badge_class(server.status)]}>
+                          <%= server.status %>
+                        </span>
+                        <%= if server.last_error do %>
+                          <a
+                            href="/logs"
+                            title={inspect(server.last_error)}
+                            class="w-2 h-2 rounded-full bg-red-400 hover:bg-red-300 animate-pulse cursor-pointer"
+                          ></a>
+                        <% end %>
+                      </div>
                     </td>
                     <td class="px-6 py-3.5">
                       <span class={["text-[13px] font-mono", metric_color(server.cpu_percent)]}>
@@ -395,6 +422,7 @@ defmodule SSHClientWeb.HostLive do
       name: to_string(server[:name] || server[:id]),
       host: to_string(server[:host] || ""),
       status: status,
+      last_error: server[:last_error],
       cpu_percent: Map.get(metrics, :cpu_percent, Map.get(metrics, "cpu_percent", 0.0)) |> to_float(),
       ram_percent: Map.get(metrics, :ram_percent, Map.get(metrics, "ram_percent", 0.0)) |> to_float(),
       disk_percent: Map.get(metrics, :disk_percent, Map.get(metrics, "disk_percent", 0.0)) |> to_float()

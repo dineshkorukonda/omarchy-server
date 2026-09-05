@@ -26,6 +26,8 @@ defmodule SSHClient.Application do
       SSHClientWeb.Endpoint,
       # Desktop Window or headless fallback
       SSHClient.Window,
+      # Diagnostic and Activity Logger
+      SSHClient.ActivityLog,
       # SSH backend
       {Registry, keys: :unique, name: SSHClient.WorkerRegistry},
       SSHClient.ServerSupervisor,

@@ -6,6 +6,7 @@ defmodule SSHClient.ServerWorker do
 
   use GenServer, restart: :permanent
 
+  alias SSHClient.ActivityLog
   alias SSHClient.Config.Server
   alias SSHClient.InitSystem
   alias SSHClient.Notifier
@@ -491,6 +492,23 @@ defmodule SSHClient.ServerWorker do
     if old_status != new_state.status do
       server_name = new_state.server.name || new_state.server.id
       Notifier.notify_state_change(server_name, old_status, new_state.status)
+
+      log_level =
+        case new_state.status do
+          :reconnecting -> :error
+          :degraded -> :warn
+          _ -> :info
+        end
+
+      msg =
+        case new_state.status do
+          :polling -> "Connected and polling metrics"
+          :reconnecting -> "Connection failed (#{inspect(new_state.last_error)}). Reconnecting..."
+          :degraded -> "Degraded state (#{inspect(new_state.last_error)})"
+          other -> "Status changed to #{other}"
+        end
+
+      ActivityLog.log(log_level, new_state.server.id, msg, new_state.last_error)
     end
 
     new_state
