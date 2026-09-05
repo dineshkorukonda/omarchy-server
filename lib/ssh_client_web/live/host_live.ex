@@ -86,26 +86,46 @@ defmodule SSHClientWeb.HostLive do
     name = String.trim(params["name"] || "")
     host = String.trim(params["host"] || "")
     user = String.trim(params["user"] || "")
-    port = String.to_integer(params["port"] || "22")
+    port =
+      case Integer.parse(params["port"] || "22") do
+        {p, ""} when p in 1..65535 -> p
+        _ -> 22
+      end
 
     if name == "" or host == "" or user == "" do
       {:noreply, assign(socket, :error, "Name, host, and user are required.")}
     else
       config = %{
-        id: String.downcase(String.replace(name, ~r/\s+/, "-")),
-        name: name,
-        host: host,
-        user: user,
-        port: port
+        "id" => String.downcase(String.replace(name, ~r/\s+/, "-")),
+        "name" => name,
+        "host" => host,
+        "user" => user,
+        "port" => port
       }
 
       case ServerManager.add_server(config) do
+        {:ok, _result} ->
+          {:noreply, socket |> assign(add_modal: false, error: nil) |> load_servers()}
+
         :ok ->
           {:noreply, socket |> assign(add_modal: false, error: nil) |> load_servers()}
 
         {:error, reason} ->
           {:noreply, assign(socket, :error, inspect(reason))}
       end
+    end
+  end
+
+  def handle_event("remove_server", %{"id" => id}, socket) do
+    case ServerManager.remove_server(id) do
+      {:ok, _} ->
+        {:noreply, load_servers(socket)}
+
+      :ok ->
+        {:noreply, load_servers(socket)}
+
+      {:error, reason} ->
+        {:noreply, assign(socket, :error, inspect(reason))}
     end
   end
 
@@ -248,6 +268,14 @@ defmodule SSHClientWeb.HostLive do
                           class="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-md transition-colors"
                         >
                           Terminal
+                        </button>
+                        <button
+                          phx-click="remove_server"
+                          phx-value-id={server.id}
+                          data-confirm={"Are you sure you want to remove #{server.name}?"}
+                          class="px-2 py-1 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 text-xs rounded-md transition-colors"
+                        >
+                          Delete
                         </button>
                       </div>
                     </td>

@@ -38,16 +38,16 @@ defmodule SSHClient.Config.Server do
     with {:ok, host} <- fetch_host(attrs),
          {:ok, port} <- parse_port(attrs),
          {:ok, checks} <- parse_checks(attrs) do
-      id = Map.get(attrs, "id") || host
-      name = Map.get(attrs, "name") || id
-      user = Map.get(attrs, "user")
+      id = Map.get(attrs, "id") || Map.get(attrs, :id) || host
+      name = Map.get(attrs, "name") || Map.get(attrs, :name) || id
+      user = Map.get(attrs, "user") || Map.get(attrs, :user)
 
       proxy_jump =
-        Map.get(attrs, "ProxyJump") || Map.get(attrs, "proxy_jump") || Map.get(attrs, "proxyjump")
+        Map.get(attrs, "ProxyJump") || Map.get(attrs, "proxy_jump") || Map.get(attrs, :proxy_jump) || Map.get(attrs, "proxyjump")
 
       identity_file =
-        Map.get(attrs, "identity_file") || Map.get(attrs, "IdentityFile") ||
-          Map.get(attrs, "identityfile")
+        Map.get(attrs, "identity_file") || Map.get(attrs, :identity_file) ||
+          Map.get(attrs, "IdentityFile") || Map.get(attrs, "identityfile")
 
       auth_order = parse_auth_order(attrs)
 
@@ -71,56 +71,61 @@ defmodule SSHClient.Config.Server do
     {:error, "server entry must be a map"}
   end
 
-  defp fetch_host(%{"host" => host}) when is_binary(host) and byte_size(host) > 0 do
-    {:ok, host}
-  end
+  defp fetch_host(attrs) when is_map(attrs) do
+    host = Map.get(attrs, "host") || Map.get(attrs, :host)
+    cond do
+      is_binary(host) and byte_size(String.trim(host)) > 0 ->
+        {:ok, String.trim(host)}
 
-  defp fetch_host(%{"host" => _}) do
-    {:error, "server host must be a non-empty string"}
-  end
+      is_binary(host) ->
+        {:error, "server host must be a non-empty string"}
 
-  defp fetch_host(_attrs) do
-    {:error, "missing required field 'host' in server configuration"}
-  end
-
-  defp parse_port(%{"port" => port}) when is_integer(port) and port in 1..65535 do
-    {:ok, port}
-  end
-
-  defp parse_port(%{"port" => port}) when is_binary(port) do
-    case Integer.parse(port) do
-      {int, ""} when int in 1..65535 -> {:ok, int}
-      _ -> {:error, "invalid port number: #{port}"}
+      true ->
+        {:error, "missing required field 'host' in server configuration"}
     end
   end
 
-  defp parse_port(%{"port" => invalid}) do
-    {:error, "invalid port number: #{inspect(invalid)}"}
-  end
+  defp parse_port(attrs) when is_map(attrs) do
+    port = Map.get(attrs, "port") || Map.get(attrs, :port)
+    cond do
+      is_nil(port) ->
+        {:ok, 22}
 
-  defp parse_port(_attrs) do
-    {:ok, 22}
-  end
+      is_integer(port) and port in 1..65535 ->
+        {:ok, port}
 
-  defp parse_checks(%{"checks" => checks}) when is_list(checks) do
-    Enum.reduce_while(checks, {:ok, []}, fn check_map, {:ok, acc} ->
-      case Check.from_map(check_map) do
-        {:ok, check} -> {:cont, {:ok, [check | acc]}}
-        {:error, reason} -> {:halt, {:error, "invalid check in server: #{reason}"}}
-      end
-    end)
-    |> case do
-      {:ok, list} -> {:ok, Enum.reverse(list)}
-      error -> error
+      is_binary(port) ->
+        case Integer.parse(port) do
+          {int, ""} when int in 1..65535 -> {:ok, int}
+          _ -> {:error, "invalid port number: #{port}"}
+        end
+
+      true ->
+        {:error, "invalid port number: #{inspect(port)}"}
     end
   end
 
-  defp parse_checks(%{"checks" => _invalid}) do
-    {:error, "'checks' must be a list"}
-  end
+  defp parse_checks(attrs) when is_map(attrs) do
+    checks = Map.get(attrs, "checks") || Map.get(attrs, :checks)
+    cond do
+      is_nil(checks) ->
+        {:ok, []}
 
-  defp parse_checks(_attrs) do
-    {:ok, []}
+      is_list(checks) ->
+        Enum.reduce_while(checks, {:ok, []}, fn check_map, {:ok, acc} ->
+          case Check.from_map(check_map) do
+            {:ok, check} -> {:cont, {:ok, [check | acc]}}
+            {:error, reason} -> {:halt, {:error, "invalid check in server: #{reason}"}}
+          end
+        end)
+        |> case do
+          {:ok, list} -> {:ok, Enum.reverse(list)}
+          error -> error
+        end
+
+      true ->
+        {:error, "'checks' must be a list"}
+    end
   end
 
   defp parse_auth_order(attrs) do

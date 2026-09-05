@@ -66,62 +66,6 @@ defmodule SSHClientWeb.TerminalLive do
         data-rows={@rows}
       ></div>
     </div>
-
-    <script>
-      // TerminalHook — mounts xterm.js and wires to Phoenix channel
-      window.TerminalHook = {
-        mounted() {
-          const el = this.el;
-          const lv = this;
-
-          if (typeof Terminal === 'undefined') {
-            el.innerHTML = '<div style="color:#ef4444;font-family:monospace;padding:1rem">xterm.js not loaded</div>';
-            return;
-          }
-
-          const term = new Terminal({
-            cursorBlink: true,
-            fontSize: 13,
-            lineHeight: 1.25,
-            fontFamily: "'JetBrains Mono', 'Menlo', 'Consolas', monospace",
-            theme: {
-              background: '#050505',
-              foreground: '#e4e4e7',
-              cursor:     '#3b82f6',
-              black:      '#050505',
-              brightBlack:'#27272a',
-              red:        '#ef4444',
-              blue:       '#3b82f6',
-              cyan:       '#06b6d4',
-              green:      '#22c55e',
-              yellow:     '#eab308',
-              white:      '#e4e4e7',
-              brightWhite:'#fafafa'
-            }
-          });
-
-          const fitAddon = (typeof FitAddon !== 'undefined') ? new FitAddon.FitAddon() : null;
-          if (fitAddon) term.loadAddon(fitAddon);
-
-          term.open(el);
-          if (fitAddon) fitAddon.fit();
-
-          term.writeln('\x1b[1;34mssh-client\x1b[0m \x1b[2mv0.0.1\x1b[0m');
-          term.writeln('\x1b[2mConnecting to ' + (el.dataset.serverId || 'server') + '...\x1b[0m');
-          term.writeln('');
-
-          lv.pushEvent("terminal_ready", {});
-
-          term.onData(function(data) {
-            lv.pushEvent("terminal_data", { data: data });
-          });
-
-          window.addEventListener('resize', () => {
-            if (fitAddon) fitAddon.fit();
-          });
-        }
-      };
-    </script>
     """
   end
 end

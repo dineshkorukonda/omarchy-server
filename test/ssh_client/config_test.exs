@@ -271,5 +271,37 @@ defmodule SSHClient.ConfigTest do
       assert is_binary(dir)
       assert String.contains?(dir, "ssh-client")
     end
+
+    test "from_map supports atom-keyed and string-keyed maps" do
+      atom_map = %{
+        id: "web-1",
+        name: "Web 1",
+        host: "10.0.0.1",
+        user: "admin",
+        port: 2222
+      }
+
+      assert {:ok, server} = SSHClient.Config.Server.from_map(atom_map)
+      assert server.id == "web-1"
+      assert server.name == "Web 1"
+      assert server.host == "10.0.0.1"
+      assert server.user == "admin"
+      assert server.port == 2222
+
+      str_map = %{
+        "id" => "db-1",
+        "name" => "DB 1",
+        "host" => "10.0.0.2",
+        "user" => "postgres",
+        "port" => "5432"
+      }
+
+      assert {:ok, server_str} = SSHClient.Config.Server.from_map(str_map)
+      assert server_str.id == "db-1"
+      assert server_str.name == "DB 1"
+      assert server_str.host == "10.0.0.2"
+      assert server_str.user == "postgres"
+      assert server_str.port == 5432
+    end
   end
 end
