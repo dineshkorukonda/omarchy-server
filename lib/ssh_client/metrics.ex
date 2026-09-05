@@ -44,8 +44,15 @@ defmodule SSHClient.Metrics do
   Parses combined output containing top, free, and df delimited sections.
   """
   def parse_combined(output) when is_binary(output) do
-    delim_free = if String.contains?(output, @combined_delimiter_free), do: @combined_delimiter_free, else: @legacy_delimiter_free
-    delim_df = if String.contains?(output, @combined_delimiter_df), do: @combined_delimiter_df, else: @legacy_delimiter_df
+    delim_free =
+      if String.contains?(output, @combined_delimiter_free),
+        do: @combined_delimiter_free,
+        else: @legacy_delimiter_free
+
+    delim_df =
+      if String.contains?(output, @combined_delimiter_df),
+        do: @combined_delimiter_df,
+        else: @legacy_delimiter_df
 
     case String.split(output, delim_free) do
       [top_part, rest] ->
