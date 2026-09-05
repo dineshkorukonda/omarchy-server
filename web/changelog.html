@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Changelog & Version History — ssh-client</title>
+  <meta name="description" content="Complete version history, release notes, and commit audit log for ssh-client.">
+
+  <!-- daisyUI + Tailwind CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Typography: JetBrains Mono + Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+    }
+    code, pre, .font-mono {
+      font-family: var(--font-mono);
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-base-300 text-base-content flex flex-col antialiased selection:bg-amber-600/30 selection:text-neutral-100">
+
+  <!-- Header / Navigation -->
+  <header class="sticky top-0 z-50 border-b border-base-content/10 bg-base-300/90 backdrop-blur-md">
+    <div class="navbar max-w-5xl mx-auto px-6 h-16">
+      <div class="flex-1">
+        <a href="index.html" class="font-mono text-sm font-bold tracking-tight text-neutral-100 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+          <span>ssh-client</span>
+          <span class="badge badge-sm badge-neutral font-mono text-[10px] ml-1">v0.0.1</span>
+        </a>
+      </div>
+      <div class="flex-none gap-2 font-mono text-xs">
+        <a href="index.html" class="btn btn-ghost btn-sm text-neutral-400 hover:text-neutral-100">Overview</a>
+        <a href="install.html" class="btn btn-ghost btn-sm text-neutral-400 hover:text-neutral-100">Install & FAQs</a>
+        <a href="changelog.html" class="btn btn-ghost btn-sm text-neutral-100">Changelog</a>
+        <a href="https://github.com/dineshkorukonda/ssh-client" target="_blank" rel="noreferrer" class="btn btn-neutral btn-sm ml-2">GitHub ↗</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-grow max-w-5xl mx-auto w-full px-6 py-12 space-y-16">
+
+    <!-- Title / Header -->
+    <section class="space-y-4 pt-4 border-b border-base-content/10 pb-8">
+      <div class="font-mono text-xs text-amber-500 uppercase tracking-wider">Release Ledger</div>
+      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-100 font-mono">
+        Version History & Audit Log
+      </h1>
+      <p class="font-mono text-xs sm:text-sm text-neutral-400 max-w-2xl leading-relaxed">
+        Complete record of all additions, security fixes, transport migrations, and architectural revisions adhering to Semantic Versioning and Keep a Changelog.
+      </p>
+    </section>
+
+    <!-- Version v0.0.1 -->
+    <section class="space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-base-content/10 pb-3">
+        <div class="flex items-center gap-3">
+          <span class="font-mono text-xl font-bold text-neutral-100">v0.0.1</span>
+          <span class="badge badge-warning badge-sm font-mono text-[10px]">pre-release</span>
+        </div>
+        <div class="font-mono text-xs text-neutral-500 flex items-center gap-4">
+          <span>Released: 2026-09-05</span>
+          <a href="https://github.com/dineshkorukonda/ssh-client/releases/tag/v0.0.1" target="_blank" rel="noreferrer" class="text-amber-500 hover:underline">
+            GitHub Release ↗
+          </a>
+        </div>
+      </div>
+
+      <div class="space-y-6 font-mono text-xs">
+
+        <!-- Category: Added -->
+        <div class="border border-base-content/10 bg-base-200 p-6 rounded-lg space-y-4">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-amber-500">Added Features & Subsystems</h2>
+          <ul class="space-y-3 text-neutral-300">
+            <li class="flex items-start gap-2">
+              <span class="text-amber-500 select-none font-bold">+</span>
+              <div>
+                <strong class="text-neutral-100">Native Erlang/OTP SSH Transport:</strong>
+                <p class="text-neutral-400 mt-0.5">Implemented direct Erlang <code class="text-neutral-300">:ssh</code>, <code class="text-neutral-300">:ssh_connection</code>, and <code class="text-neutral-300">:ssh_sftp</code> transport layer. Completely eliminated external process shelling to the system <code class="text-neutral-300">ssh</code> binary.</p>
+              </div>
+            </li>
+
+            <li class="flex items-start gap-2">
+              <span class="text-amber-500 select-none font-bold">+</span>
+              <div>
+                <strong class="text-neutral-100">Pluggable Auth Callback System:</strong>
+                <p class="text-neutral-400 mt-0.5">Added <code class="text-neutral-300">SSHClient.SSH.Auth</code> supporting key identities (Ed25519, RSA, custom identity files), ssh-agent, passwords, and keyboard-interactive authentication with per-host priority ordering.</p>
+              </div>
+            </li>
+
+            <li class="flex items-start gap-2">
+              <span class="text-amber-500 select-none font-bold">+</span>
+              <div>
+                <strong class="text-neutral-100">Host Key Fingerprint Diff Flow:</strong>
+                <p class="text-neutral-400 mt-0.5">Added <code class="text-neutral-300">SSHClient.SSH.HostKeyVerifier</code> with visual SHA-256 fingerprint diffing and reject-by-default logic on changed host keys.</p>
+              </div>
+            </li>
+
+            <li class="flex items-start gap-2">
+              <span class="text-amber-500 select-none font-bold">+</span>
+              <div>
+                <strong class="text-neutral-100">Interactive xterm.js Terminal Bridge:</strong>
+                <p class="text-neutral-400 mt-0.5">Embedded xterm.js container streaming over Phoenix Channel (<code class="text-neutral-300">TerminalChannel</code>) to OTP <code class="text-neutral-300">PTYSession</code> with PTY resize notifications and bracketed paste mode.</p>
+              </div>
+            </li>
+
+            <li class="flex items-start gap-2">
+              <span class="text-amber-500 select-none font-bold">+</span>
+              <div>
+                <strong class="text-neutral-100">Cross-Platform Desktop Window Shell:</strong>
+                <p class="text-neutral-400 mt-0.5">Integrated <code class="text-neutral-300">elixir-desktop</code> / <code class="text-neutral-300">SSHClient.Window</code> using WebView2 on Windows and WebKitGTK on Linux.</p>
+              </div>
+            </li>
+
+            <li class="flex items-start gap-2">
+              <span class="text-amber-500 select-none font-bold">+</span>
+              <div>
+                <strong class="text-neutral-100">Host Management & Importers:</strong>
+                <p class="text-neutral-400 mt-0.5">Added <code class="text-neutral-300">user@host:port</code> quick-add parser, automatic <code class="text-neutral-300">~/.ssh/config</code> deduplicated importer, and ranked in-memory fuzzy search.</p>
+              </div>
+            </li>
+
+            <li class="flex items-start gap-2">
+              <span class="text-amber-500 select-none font-bold">+</span>
+              <div>
+                <strong class="text-neutral-100">OS Keychain Integration:</strong>
+                <p class="text-neutral-400 mt-0.5">Windows Credential Manager port and Linux Secret Service (<code class="text-neutral-300">libsecret</code>) backend. Decrypted private key passphrases cached strictly in ephemeral memory.</p>
+              </div>
+            </li>
+
+            <li class="flex items-start gap-2">
+              <span class="text-amber-500 select-none font-bold">+</span>
+              <div>
+                <strong class="text-neutral-100">Telemetry & Remote Operations:</strong>
+                <p class="text-neutral-400 mt-0.5">Focus-aware polling loop with idle backoff for CPU/RAM/disk metrics, remote service manager (systemd, Docker, PM2) with action confirmations, and journalctl log streamer.</p>
+              </div>
+            </li>
+
+            <li class="flex items-start gap-2">
+              <span class="text-amber-500 select-none font-bold">+</span>
+              <div>
+                <strong class="text-neutral-100">Automated Packaging Pipeline:</strong>
+                <p class="text-neutral-400 mt-0.5">GitHub Actions matrix CI covering unit tests on Windows & Ubuntu, Docker OpenSSH target tests, and automated packaging of Windows x64 .zip and Linux x64 .tar.gz release assets on tag push.</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Category: Fixed -->
+        <div class="border border-base-content/10 bg-base-200 p-6 rounded-lg space-y-4">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-amber-500">Bug Fixes & Hardening</h2>
+          <ul class="space-y-3 text-neutral-300">
+            <li class="flex items-start gap-2">
+              <span class="text-info select-none font-bold">~</span>
+              <div>
+                <strong class="text-neutral-100">Windows Socket Fallback:</strong>
+                <p class="text-neutral-400 mt-0.5">Resolved Unix domain socket path errors on Windows by implementing graceful fallback to localhost loopback ports.</p>
+              </div>
+            </li>
+
+            <li class="flex items-start gap-2">
+              <span class="text-info select-none font-bold">~</span>
+              <div>
+                <strong class="text-neutral-100">Erlang Charlist Hostname Handling:</strong>
+                <p class="text-neutral-400 mt-0.5">Fixed <code class="text-neutral-300">SSHClient.SSH.KeyCallback</code> to transparently accept Erlang charlists or Elixir binaries for hostnames.</p>
+              </div>
+            </li>
+
+            <li class="flex items-start gap-2">
+              <span class="text-info select-none font-bold">~</span>
+              <div>
+                <strong class="text-neutral-100">Encoding Sanitization:</strong>
+                <p class="text-neutral-400 mt-0.5">Stripped UTF-8 Byte Order Marks (BOM) across all project files to satisfy POSIX build standards.</p>
+              </div>
+            </li>
+
+            <li class="flex items-start gap-2">
+              <span class="text-info select-none font-bold">~</span>
+              <div>
+                <strong class="text-neutral-100">Fuzzy Search Scoring:</strong>
+                <p class="text-neutral-400 mt-0.5">Fine-tuned word boundary penalty calculations for 2-character queries to prevent false negative rankings.</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Category: Changed -->
+        <div class="border border-base-content/10 bg-base-200 p-6 rounded-lg space-y-4">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-amber-500">Project Governance & Renaming</h2>
+          <ul class="space-y-3 text-neutral-300">
+            <li class="flex items-start gap-2">
+              <span class="text-neutral-500 select-none font-bold">&bull;</span>
+              <div>
+                <strong class="text-neutral-100">Namespace & Project Rename:</strong>
+                <p class="text-neutral-400 mt-0.5">Renamed application to <code class="text-neutral-300">:ssh_client</code> and top-level modules to <code class="text-neutral-300">SSHClient.*</code>.</p>
+              </div>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-neutral-500 select-none font-bold">&bull;</span>
+              <div>
+                <strong class="text-neutral-100">Decoupled Omarchy/QML Shell:</strong>
+                <p class="text-neutral-400 mt-0.5">Removed Linux-only Quickshell/QML bar widget dependencies in favor of cross-platform Phoenix LiveView + <code class="text-neutral-300">elixir-desktop</code>.</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Prior History (v0.1.0) -->
+    <section class="space-y-4 border-t border-base-content/10 pt-8">
+      <div class="flex items-center gap-3">
+        <span class="font-mono text-base font-bold text-neutral-400">v0.1.0</span>
+        <span class="badge badge-ghost badge-sm font-mono text-[10px]">historical origin</span>
+      </div>
+      <p class="font-mono text-xs text-neutral-500 leading-relaxed max-w-3xl">
+        Precursor project originated as <code class="text-neutral-400">omarchy-server</code>, an agentless SSH monitoring daemon and QML bar widget for Omarchy/Hyprland on Linux desktop environments. Contained initial Unix domain socket JSON API, init-system detection, and standalone PTY daemon.
+      </p>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-base-content/10 bg-base-300/80 py-10 mt-16 font-mono text-xs text-neutral-500">
+    <div class="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <p>ssh-client &bull; Open source under MIT License &bull; Offline & Zero Telemetry</p>
+      <div class="flex gap-6">
+        <a href="index.html" class="hover:text-neutral-300 transition-colors">Overview</a>
+        <a href="install.html" class="hover:text-neutral-300 transition-colors">Install & FAQs</a>
+        <a href="https://github.com/dineshkorukonda/ssh-client" target="_blank" rel="noreferrer" class="hover:text-neutral-300 transition-colors">GitHub Repository</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
