@@ -5,7 +5,11 @@ config :ssh_client, SSHClientWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4000],
   check_origin: false,
   secret_key_base: "sshclientdevkeybase0000000000000000000000000000000000000000000000",
-  live_view: [signing_salt: "sshclientlv"]
+  live_view: [signing_salt: "sshclientlv"],
+  render_errors: [
+    formats: [html: SSHClientWeb.ErrorHTML],
+    layout: false
+  ]
 
 config :phoenix, :json_library, Jason
 
