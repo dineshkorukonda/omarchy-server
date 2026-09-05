@@ -10,6 +10,8 @@ defmodule SSHClient.ServerWorker do
   alias SSHClient.InitSystem
   alias SSHClient.Notifier
   alias SSHClient.SSH
+  alias SSHClient.Metrics
+  alias SSHClient.ServiceChecks
 
   @type status :: :connecting | :polling | :degraded | :reconnecting
 
@@ -415,16 +417,48 @@ defmodule SSHClient.ServerWorker do
     SSH.exec(conn, cmd)
   end
 
-  defp default_runner(_server, {:poll, conn, _checks}) do
-    case SSH.exec(conn, "uptime") do
-      {:ok, output, 0} ->
-        {:ok, %{metrics: %{uptime: String.trim(output)}, checks: %{}}}
+  defp default_runner(_server, {:poll, conn, checks}) do
+    metrics_result =
+      case Metrics.collect(conn) do
+        {:ok, parsed} -> parsed
+        _ -> %{}
+      end
 
-      {:ok, _output, code} ->
-        {:degraded, {:nonzero_exit, code}, %{}}
+    uptime_result =
+      case SSH.exec(conn, "uptime") do
+        {:ok, output, 0} -> %{uptime: String.trim(output)}
+        _ -> %{}
+      end
 
-      {:error, reason} ->
-        {:error, reason}
+    metrics = Map.merge(metrics_result, uptime_result)
+
+    checks_result =
+      case checks do
+        nil ->
+          %{}
+
+        [] ->
+          %{}
+
+        list when is_list(list) ->
+          case ServiceChecks.check_all(list, conn) do
+            {:ok, res} -> res
+            _ -> %{}
+          end
+
+        _ ->
+          %{}
+      end
+
+    cond do
+      map_size(metrics) > 0 ->
+        {:ok, %{metrics: metrics, checks: checks_result}}
+
+      map_size(checks_result) > 0 ->
+        {:ok, %{metrics: metrics, checks: checks_result}}
+
+      true ->
+        {:degraded, :metrics_empty, %{metrics: metrics, checks: checks_result}}
     end
   end
 

@@ -6,8 +6,10 @@ defmodule SSHClient.Metrics do
 
   alias SSHClient.SSH
 
-  @combined_delimiter_free "===OMARCHY_FREE==="
-  @combined_delimiter_df "===OMARCHY_DF==="
+  @combined_delimiter_free "===SSH_CLIENT_FREE==="
+  @combined_delimiter_df "===SSH_CLIENT_DF==="
+  @legacy_delimiter_free "===OMARCHY_FREE==="
+  @legacy_delimiter_df "===OMARCHY_DF==="
 
   @doc """
   Command string combining top, free, and df into a single remote execution.
@@ -42,9 +44,12 @@ defmodule SSHClient.Metrics do
   Parses combined output containing top, free, and df delimited sections.
   """
   def parse_combined(output) when is_binary(output) do
-    case String.split(output, @combined_delimiter_free) do
+    delim_free = if String.contains?(output, @combined_delimiter_free), do: @combined_delimiter_free, else: @legacy_delimiter_free
+    delim_df = if String.contains?(output, @combined_delimiter_df), do: @combined_delimiter_df, else: @legacy_delimiter_df
+
+    case String.split(output, delim_free) do
       [top_part, rest] ->
-        case String.split(rest, @combined_delimiter_df) do
+        case String.split(rest, delim_df) do
           [free_part, df_part] ->
             with {:ok, cpu} <- parse_top(top_part),
                  {:ok, memory} <- parse_free(free_part),

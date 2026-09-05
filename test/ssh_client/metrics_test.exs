@@ -103,6 +103,16 @@ defmodule SSHClient.MetricsTest do
       assert metrics.disk.root.use_percent == 20
     end
 
+    test "parses full combined output with SSHClient delimiters" do
+      combined =
+        "#{@top_fixture}\n===SSH_CLIENT_FREE===\n#{@free_fixture}\n===SSH_CLIENT_DF===\n#{@df_fixture}"
+
+      assert {:ok, metrics} = Metrics.parse_combined(combined)
+      assert metrics.cpu.used_percent == 34.2
+      assert metrics.memory.used_percent == 36.8
+      assert metrics.disk.root.use_percent == 20
+    end
+
     test "collect/2 executes command with runner function" do
       combined =
         "#{@top_fixture}\n===OMARCHY_FREE===\n#{@free_fixture}\n===OMARCHY_DF===\n#{@df_fixture}"
