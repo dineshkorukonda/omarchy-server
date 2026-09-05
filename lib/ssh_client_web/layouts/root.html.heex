@@ -116,18 +116,26 @@
     {@inner_content}
 
     <!-- Phoenix & LiveView JS client -->
-    <script src="https://cdn.jsdelivr.net/npm/phoenix@1.7.14/priv/static/phoenix.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/phoenix_live_view@1.0.0/priv/static/phoenix_live_view.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/phoenix@1.8.13/priv/static/phoenix.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/phoenix_live_view@1.2.11/priv/static/phoenix_live_view.min.js"></script>
     <script>
       (function() {
-        const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");
+        const csrfToken = document.querySelector("meta[name='csrf-token']") ? document.querySelector("meta[name='csrf-token']").getAttribute("content") : "";
         const hooks = {};
         if (window.TerminalHook) {
           hooks.TerminalHook = window.TerminalHook;
         }
         window.liveSocketHooks = hooks;
 
-        const liveSocket = new LiveView.LiveSocket("/live", Phoenix.Socket, {
+        const Socket = (typeof Phoenix !== 'undefined') ? Phoenix.Socket : (window.Socket || null);
+        const LiveSocket = (typeof LiveView !== 'undefined') ? LiveView.LiveSocket : (window.LiveSocket || null);
+
+        if (!Socket || !LiveSocket) {
+          console.error("Phoenix or LiveView client library failed to load.", {Socket, LiveSocket});
+          return;
+        }
+
+        const liveSocket = new LiveSocket("/live", Socket, {
           params: {_csrf_token: csrfToken},
           hooks: hooks
         });
