@@ -25,6 +25,8 @@ defmodule SSHClient.ServerWorker do
     checks: %{},
     consecutive_failures: 0,
     poll_interval: 5000,
+    background_poll_interval: 30_000,
+    focused?: true,
     reconnect_interval: 2000,
     last_error: nil,
     updated_at: nil
@@ -97,6 +99,14 @@ defmodule SSHClient.ServerWorker do
   """
   def get_server_config(worker) do
     GenServer.call(resolve_worker(worker), :get_server_config)
+  end
+
+  @doc """
+  Sets the focus state of the server. When focused, polls at normal interval;
+  when unfocused (backgrounded), backs off to background_poll_interval.
+  """
+  def set_focus(worker, focused?) when is_boolean(focused?) do
+    GenServer.call(resolve_worker(worker), {:set_focus, focused?})
   end
 
   @doc """
@@ -196,6 +206,11 @@ defmodule SSHClient.ServerWorker do
   end
 
   @impl true
+  def handle_call({:set_focus, focused?}, _from, state) do
+    {:reply, :ok, %{state | focused?: focused?}}
+  end
+
+  @impl true
   def handle_call({:exec_cmd, cmd}, _from, state) do
     cond do
       is_nil(state.connection) ->
@@ -225,7 +240,14 @@ defmodule SSHClient.ServerWorker do
     new_state = do_poll(state)
 
     if new_state.status in [:polling, :degraded] do
-      schedule_poll(new_state.poll_interval)
+      effective_interval =
+        if new_state.focused? do
+          new_state.poll_interval
+        else
+          new_state.background_poll_interval
+        end
+
+      schedule_poll(effective_interval)
     end
 
     {:noreply, new_state}
