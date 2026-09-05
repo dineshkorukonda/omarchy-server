@@ -1,11 +1,18 @@
 #!/usr/bin/env bash
 
-# Terminal UI for managing omarchy-server targets.
-# Communicates directly with the daemon Unix domain socket.
+# Terminal UI for managing ssh-client targets.
+# Communicates directly with the daemon Unix domain socket / named pipe.
 
 set -euo pipefail
 
-SOCKET_PATH="${OMARCHY_SERVER_SOCK:-/tmp/omarchy_server.sock}"
+# OS-correct socket resolution (Windows Git Bash / MSYS2 compatible)
+if [[ "${OSTYPE:-}" == "msys"* || "${OSTYPE:-}" == "cygwin"* ]]; then
+  DEFAULT_SOCKET="/tmp/ssh_client.sock"
+else
+  DEFAULT_SOCKET="${XDG_RUNTIME_DIR:-/tmp}/ssh_client.sock"
+fi
+
+SOCKET_PATH="${SSH_CLIENT_SOCKET:-${OMARCHY_SERVER_SOCK:-$DEFAULT_SOCKET}}"
 
 check_dependencies() {
   local missing=()
@@ -17,7 +24,7 @@ check_dependencies() {
 
   if [ ${#missing[@]} -gt 0 ]; then
     echo "Error: missing required tools: ${missing[*]}" >&2
-    echo "Please install them to use omarchy-server-tui." >&2
+    echo "Please install them to use ssh-client-tui." >&2
     exit 1
   fi
 }
@@ -56,7 +63,7 @@ show_header() {
     --width 60 \
     --margin "0 1" \
     --padding "0 1" \
-    "Omarchy Server Management (TUI)"
+    "ssh-client Management (TUI)"
 }
 
 action_list_servers() {
