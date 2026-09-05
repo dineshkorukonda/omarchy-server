@@ -39,4 +39,10 @@ defmodule SSHClient.NotifierTest do
       end
     end
   end
+
+  describe "send_notification/3" do
+    test "succeeds gracefully without raising on host system" do
+      assert :ok = Notifier.send_notification("normal", "ssh-client", "Test notification")
+    end
+  end
 end
