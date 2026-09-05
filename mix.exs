@@ -7,7 +7,13 @@ defmodule SSHClient.MixProject do
       version: "0.2.0",
       elixir: "~> 1.18 or ~> 1.19 or ~> 1.20",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      releases: [
+        ssh_client: [
+          include_executables_for: [:unix, :windows],
+          applications: [runtime_tools: :permanent]
+        ]
+      ]
     ]
   end
 
