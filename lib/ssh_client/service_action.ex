@@ -101,6 +101,42 @@ defmodule SSHClient.ServiceAction do
     end
   end
 
+  @doc """
+  Tails system journal or syslog continuously over an active SSH session,
+  streaming chunks to the client PID as `{:log_chunk, server_id, binary()}`.
+  """
+  @spec tail_logs(String.t(), pos_integer(), String.t() | nil, pid()) ::
+          {:ok, pid()} | {:error, term()}
+  def tail_logs(server_id, lines \\ 50, unit \\ nil, client_pid \\ self()) do
+    safe_lines = min(lines, 500)
+
+    cmd =
+      if unit do
+        safe_unit = sanitize_name(unit)
+        "journalctl -u #{safe_unit} -n #{safe_lines} -f --no-pager 2>/dev/null"
+      else
+        "journalctl -n #{safe_lines} -f --no-pager 2>/dev/null"
+      end
+
+    target = ServerWorker.resolve_worker_pub(server_id)
+
+    task =
+      Task.start(fn ->
+        case GenServer.call(target, {:exec_cmd, cmd}, 60_000) do
+          {:ok, output} ->
+            send(client_pid, {:log_chunk, server_id, output})
+
+          {:error, reason} ->
+            send(client_pid, {:log_error, server_id, reason})
+        end
+      end)
+
+    case task do
+      {:ok, pid} -> {:ok, pid}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
   # Builds the shell command for the given service type, name, and action.
   defp build_action_command("systemctl", service, action) do
     cmd =

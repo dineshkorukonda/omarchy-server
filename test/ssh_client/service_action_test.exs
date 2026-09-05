@@ -189,5 +189,35 @@ defmodule SSHClient.ServiceActionTest do
       assert_received {:exec_logs, cmd2}
       assert cmd2 =~ "journalctl -u nginx.service -n 30"
     end
+
+    test "tail_logs/4 streams log chunks to client PID" do
+      parent = self()
+
+      runner = fn
+        _server, :connect -> {:ok, :mock_conn}
+        _server, {:exec, :mock_conn, _cmd} -> {:ok, "streaming log line 1\nline 2", 0}
+        _server, {:close, :mock_conn} -> :ok
+        _server, {:poll, :mock_conn, _checks} -> {:ok, %{metrics: %{}, checks: %{}}}
+      end
+
+      server = %SSHClient.Config.Server{
+        id: "svc-tail-srv-1",
+        host: "127.0.0.1",
+        checks: []
+      }
+
+      {:ok, _pid} =
+        SSHClient.ServerWorker.start_link(server,
+          runner: runner,
+          auto_connect: true
+        )
+
+      Process.sleep(50)
+
+      assert {:ok, tail_pid} = ServiceAction.tail_logs(server.id, 25, nil, parent)
+      assert is_pid(tail_pid)
+      assert_receive {:log_chunk, "svc-tail-srv-1", logs}, 1000
+      assert logs =~ "streaming log line 1"
+    end
   end
 end
