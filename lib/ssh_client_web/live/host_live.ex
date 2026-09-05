@@ -84,22 +84,72 @@ defmodule SSHClientWeb.HostLive do
   end
 
   @doc """
-  Filters the server list based on a query string (matches name, host, or id).
+  Filters and ranks the server list based on a query string using fuzzy subsequence
+  and substring matching across name, host, id, and optional group/tags.
+  If group filter is provided, narrows down to that group first.
   """
-  def filter_servers(servers, query) do
+  def filter_servers(servers, query, group_filter \\ nil) do
+    filtered_by_group =
+      case group_filter do
+        nil -> servers
+        "" -> servers
+        g -> Enum.filter(servers, fn s -> s[:group] == g or Map.get(s, "group") == g end)
+      end
+
     case String.trim(to_string(query)) do
       "" ->
-        servers
+        filtered_by_group
 
       q ->
         q_down = String.downcase(q)
 
-        Enum.filter(servers, fn s ->
-          String.contains?(String.downcase(s.name || ""), q_down) or
-            String.contains?(String.downcase(s.host || ""), q_down) or
-            String.contains?(String.downcase(s.id || ""), q_down)
-        end)
+        filtered_by_group
+        |> Enum.map(fn s -> {s, fuzzy_score(s, q_down)} end)
+        |> Enum.filter(fn {_s, score} -> score > 0 end)
+        |> Enum.sort_by(fn {_s, score} -> score end, :desc)
+        |> Enum.map(fn {s, _score} -> s end)
     end
+  end
+
+  @doc """
+  Computes a fuzzy matching score between a server candidate and a query string.
+  Higher scores indicate stronger matches (exact prefix > substring > subsequence).
+  """
+  def fuzzy_score(server, query) when is_binary(query) do
+    target_str =
+      [server[:name], server[:host], server[:id], server[:group]]
+      |> Enum.reject(&is_nil/1)
+      |> Enum.map(&to_string/1)
+      |> Enum.map(&String.downcase/1)
+      |> Enum.join(" ")
+
+    cond do
+      target_str == query ->
+        1000
+
+      String.starts_with?(target_str, query) ->
+        500
+
+      String.contains?(target_str, query) ->
+        200 + (100 - min(String.length(target_str), 100))
+
+      subsequence_match?(String.to_charlist(query), String.to_charlist(target_str)) ->
+        50
+
+      true ->
+        0
+    end
+  end
+
+  defp subsequence_match?([], _target), do: true
+  defp subsequence_match?(_pattern, []), do: false
+
+  defp subsequence_match?([char | p_rest], [char | t_rest]) do
+    subsequence_match?(p_rest, t_rest)
+  end
+
+  defp subsequence_match?(pattern, [_ | t_rest]) do
+    subsequence_match?(pattern, t_rest)
   end
 
   @doc """
