@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ssh-client — Fast, Offline-First Desktop SSH Client</title>
+  <meta name="description" content="Cross-platform desktop SSH client and infrastructure monitor with native Erlang :ssh transport, OS keychain integration, and zero telemetry.">
+  
+  <!-- Tailwind CSS & daisyUI CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    code, pre, .font-mono {
+      font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    .gradient-hero {
+      background: radial-gradient(circle at 50% -20%, rgba(56, 189, 248, 0.15) 0%, rgba(15, 23, 42, 0) 70%);
+    }
+  </style>
+</head>
+<body class="bg-base-300 text-base-content min-h-screen flex flex-col antialiased selection:bg-primary selection:text-primary-content">
+
+  <!-- Navbar -->
+  <header class="sticky top-0 z-50 backdrop-blur-md bg-base-300/80 border-b border-base-content/10">
+    <div class="navbar max-w-6xl mx-auto px-4 sm:px-8">
+      <div class="flex-1">
+        <a href="#" class="font-mono text-xl font-bold tracking-wider flex items-center gap-2 text-primary">
+          <span class="text-2xl text-accent">❯_</span> ssh-client
+        </a>
+      </div>
+      <div class="flex-none gap-4">
+        <a href="#features" class="btn btn-ghost btn-sm hidden sm:inline-flex">Features</a>
+        <a href="#why" class="btn btn-ghost btn-sm hidden sm:inline-flex">Why</a>
+        <a href="#install" class="btn btn-ghost btn-sm hidden sm:inline-flex">Install</a>
+        <a href="#downloads" class="btn btn-primary btn-sm font-mono shadow-sm">Get ssh-client</a>
+        <a href="https://github.com/dineshkorukonda/ssh-client" target="_blank" rel="noopener noreferrer" class="btn btn-circle btn-ghost btn-sm" aria-label="GitHub Repository">
+          <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-grow">
+    <!-- Hero Section -->
+    <section class="gradient-hero py-16 sm:py-24 px-4 border-b border-base-content/10">
+      <div class="max-w-5xl mx-auto text-center space-y-6">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-base-200 border border-primary/20 text-xs font-mono text-primary">
+          <span class="w-2 h-2 rounded-full bg-success animate-pulse"></span>
+          v1.0.0 released &bull; 100% offline &bull; zero telemetry
+        </div>
+        <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight">
+          SSH, <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">without the overhead.</span>
+        </h1>
+        <p class="max-w-2xl mx-auto text-base sm:text-lg text-base-content/80 font-normal">
+          A fast, cross-platform desktop SSH client and live server monitor. Built on Erlang/OTP with native transport, OS keychain security, xterm.js terminal, and zero cloud lock-in.
+        </p>
+
+        <div class="flex flex-wrap justify-center gap-4 pt-4">
+          <a href="#downloads" class="btn btn-primary font-mono gap-2 shadow-lg shadow-primary/20">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Download v1.0.0
+          </a>
+          <a href="#install" class="btn btn-outline font-mono gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            Terminal Quick-Install
+          </a>
+        </div>
+
+        <!-- Terminal / Mockup Window -->
+        <div class="pt-8 max-w-4xl mx-auto">
+          <div class="mockup-window border border-base-content/20 bg-base-200 shadow-2xl text-left">
+            <div class="bg-base-100 p-4 sm:p-6 font-mono text-xs sm:text-sm space-y-3 overflow-x-auto">
+              <div class="flex items-center justify-between text-base-content/40 border-b border-base-content/10 pb-2">
+                <span>session: prod-gateway-01 (10.0.0.12:22)</span>
+                <span class="text-success flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-success"></span> Connected (ed25519)</span>
+              </div>
+              <p class="text-base-content/60"><span class="text-secondary">$</span> ssh-client connect prod-gateway-01</p>
+              <p class="text-success">✔ OS Keychain: Retrieved key for prod-gateway-01 (Windows Credential Manager / libsecret)</p>
+              <p class="text-info">✔ Host key verified: SHA256:4aK9W1Fm8Dq7...</p>
+              <p class="text-base-content/90 font-bold">Linux prod-gateway-01 6.8.0-45-generic #45-Ubuntu SMP x86_64</p>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 my-2 py-2 px-3 bg-base-200/50 rounded border border-base-content/5 text-xs">
+                <div><span class="text-base-content/50">CPU:</span> <span class="text-primary font-bold">12.4%</span></div>
+                <div><span class="text-base-content/50">RAM:</span> <span class="text-accent font-bold">2.1G / 16G</span></div>
+                <div><span class="text-base-content/50">Disk:</span> <span class="text-warning font-bold">42%</span></div>
+                <div><span class="text-base-content/50">Load:</span> <span class="text-info font-bold">0.18 0.22 0.15</span></div>
+              </div>
+              <p class="text-base-content/70"><span class="text-primary font-bold">user@prod-gateway-01:~$</span> journalctl -u nginx -n 3 --no-pager</p>
+              <p class="text-base-content/50">Sep 05 11:42:01 nginx[1430]: 192.168.1.100 - - [05/Sep/2026] "GET /api/health HTTP/1.1" 200 45</p>
+              <p class="text-base-content/50">Sep 05 11:42:05 nginx[1430]: 192.168.1.102 - - [05/Sep/2026] "POST /v1/auth HTTP/1.1" 204 0</p>
+              <p class="text-base-content/70"><span class="text-primary font-bold">user@prod-gateway-01:~$</span> <span class="inline-block w-2 h-4 bg-primary align-middle animate-pulse"></span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Why ssh-client Section -->
+    <section id="why" class="py-16 sm:py-24 px-4 max-w-6xl mx-auto">
+      <div class="text-center space-y-4 mb-16">
+        <h2 class="text-xs font-mono uppercase tracking-widest text-primary">Philosophy & Architecture</h2>
+        <h3 class="text-3xl sm:text-4xl font-extrabold">Built to avoid modern terminal client failure modes</h3>
+        <p class="text-base-content/70 max-w-2xl mx-auto">
+          No cloud accounts. No forced subscriptions. No telemetry beacons. No silent connection dropouts.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Card 1 -->
+        <div class="card bg-base-200 border border-base-content/10 hover:border-primary/40 transition-colors">
+          <div class="card-body">
+            <div class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-mono font-bold text-lg mb-2">
+              🔒
+            </div>
+            <h4 class="card-title text-lg font-bold">100% Offline & Private</h4>
+            <p class="text-sm text-base-content/70">
+              Never requires an account or internet connectivity to function. Your server list and credentials never leave your physical device. Zero telemetry or tracking calls.
+            </p>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="card bg-base-200 border border-base-content/10 hover:border-primary/40 transition-colors">
+          <div class="card-body">
+            <div class="w-10 h-10 rounded-lg bg-accent/10 text-accent flex items-center justify-center font-mono font-bold text-lg mb-2">
+              🛡️
+            </div>
+            <h4 class="card-title text-lg font-bold">OS-Native Keychains</h4>
+            <p class="text-sm text-base-content/70">
+              Credentials are never stored in plaintext config files. Directly integrates with Windows Credential Manager and Linux Secret Service (<code class="font-mono text-xs">libsecret</code>).
+            </p>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="card bg-base-200 border border-base-content/10 hover:border-primary/40 transition-colors">
+          <div class="card-body">
+            <div class="w-10 h-10 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center font-mono font-bold text-lg mb-2">
+              ⚡
+            </div>
+            <h4 class="card-title text-lg font-bold">Native Erlang :ssh Engine</h4>
+            <p class="text-sm text-base-content/70">
+              Does not rely on shelling out to external <code class="font-mono text-xs">ssh</code> binaries. Full support for Key, Password, Agent, and Keyboard-Interactive auth on all platforms.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- What it Does / Features -->
+    <section id="features" class="py-16 sm:py-24 px-4 bg-base-200/50 border-y border-base-content/10">
+      <div class="max-w-6xl mx-auto space-y-16">
+        <div class="text-center space-y-4">
+          <h2 class="text-xs font-mono uppercase tracking-widest text-primary">Core Capabilities</h2>
+          <h3 class="text-3xl sm:text-4xl font-extrabold">Engineered for infrastructure operators</h3>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <!-- Feature 1 -->
+          <div class="flex gap-4 items-start p-6 rounded-xl bg-base-100 border border-base-content/10">
+            <div class="text-2xl p-2 rounded-lg bg-base-200 text-primary">💻</div>
+            <div class="space-y-2">
+              <h4 class="font-bold text-lg">Integrated xterm.js Terminal</h4>
+              <p class="text-sm text-base-content/70">
+                Full PTY support with terminal resize detection, bracketed paste mode, 256-color support, and bidirectional streaming over Phoenix Channels to OTP shell sessions.
+              </p>
+            </div>
+          </div>
+
+          <!-- Feature 2 -->
+          <div class="flex gap-4 items-start p-6 rounded-xl bg-base-100 border border-base-content/10">
+            <div class="text-2xl p-2 rounded-lg bg-base-200 text-accent">📊</div>
+            <div class="space-y-2">
+              <h4 class="font-bold text-lg">Live Resource Discipline</h4>
+              <p class="text-sm text-base-content/70">
+                Lightweight GenServer per host polls CPU, RAM, disk, and load average over non-interactive exec channels. Automatic backoff when hosts are in the background.
+              </p>
+            </div>
+          </div>
+
+          <!-- Feature 3 -->
+          <div class="flex gap-4 items-start p-6 rounded-xl bg-base-100 border border-base-content/10">
+            <div class="text-2xl p-2 rounded-lg bg-base-200 text-secondary">⚙️</div>
+            <div class="space-y-2">
+              <h4 class="font-bold text-lg">Remote Service & Container Control</h4>
+              <p class="text-sm text-base-content/70">
+                Inspect, restart, or stop <code class="font-mono text-xs">systemd</code> units, <code class="font-mono text-xs">Docker</code> containers, and <code class="font-mono text-xs">PM2</code> processes with one click and safety confirmations.
+              </p>
+            </div>
+          </div>
+
+          <!-- Feature 4 -->
+          <div class="flex gap-4 items-start p-6 rounded-xl bg-base-100 border border-base-content/10">
+            <div class="text-2xl p-2 rounded-lg bg-base-200 text-info">📜</div>
+            <div class="space-y-2">
+              <h4 class="font-bold text-lg">Remote Log Streaming</h4>
+              <p class="text-sm text-base-content/70">
+                Tail <code class="font-mono text-xs">journalctl</code> and system logs directly inside the UI without opening full interactive terminal sessions.
+              </p>
+            </div>
+          </div>
+
+          <!-- Feature 5 -->
+          <div class="flex gap-4 items-start p-6 rounded-xl bg-base-100 border border-base-content/10">
+            <div class="text-2xl p-2 rounded-lg bg-base-200 text-warning">🔍</div>
+            <div class="space-y-2">
+              <h4 class="font-bold text-lg">Fuzzy Search & ~/.ssh/config Import</h4>
+              <p class="text-sm text-base-content/70">
+                One-click import of your existing OpenSSH configuration with duplicate prevention. Instant fuzzy searching across hundreds of hosts, addresses, and tags.
+              </p>
+            </div>
+          </div>
+
+          <!-- Feature 6 -->
+          <div class="flex gap-4 items-start p-6 rounded-xl bg-base-100 border border-base-content/10">
+            <div class="text-2xl p-2 rounded-lg bg-base-200 text-success">🔑</div>
+            <div class="space-y-2">
+              <h4 class="font-bold text-lg">Strict Host-Key Verification</h4>
+              <p class="text-sm text-base-content/70">
+                Full fingerprint visual diffing on changed host keys with explicit accept/reject flow. Reject-by-default on mismatches prevents silent MITM vulnerabilities.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Installation Section -->
+    <section id="install" class="py-16 sm:py-24 px-4 max-w-5xl mx-auto">
+      <div class="text-center space-y-4 mb-12">
+        <h2 class="text-xs font-mono uppercase tracking-widest text-primary">Get Started</h2>
+        <h3 class="text-3xl sm:text-4xl font-extrabold">Installation</h3>
+        <p class="text-base-content/70">Run natively as a desktop app or standalone terminal daemon.</p>
+      </div>
+
+      <div class="space-y-8">
+        <!-- Windows Install -->
+        <div class="card bg-base-200 border border-base-content/10">
+          <div class="card-body">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">🪟</span>
+              <h4 class="text-lg font-bold">Windows (PowerShell)</h4>
+            </div>
+            <p class="text-sm text-base-content/70 mt-1">Download and extract the prebuilt Windows x64 release package:</p>
+            <div class="mockup-code text-xs sm:text-sm bg-base-300 text-base-content border border-base-content/10 mt-3">
+              <pre data-prefix=">"><code>Invoke-WebRequest -Uri https://github.com/dineshkorukonda/ssh-client/releases/latest/download/ssh-client-windows-x64.zip -OutFile ssh-client.zip</code></pre>
+              <pre data-prefix=">"><code>Expand-Archive -Path ssh-client.zip -DestinationPath "C:\Program Files\ssh-client"</code></pre>
+              <pre data-prefix=">"><code>& "C:\Program Files\ssh-client\bin\ssh_client.bat" start</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Linux Install -->
+        <div class="card bg-base-200 border border-base-content/10">
+          <div class="card-body">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">🐧</span>
+              <h4 class="text-lg font-bold">Linux (Bash / Curl)</h4>
+            </div>
+            <p class="text-sm text-base-content/70 mt-1">Extract the self-contained OTP release archive:</p>
+            <div class="mockup-code text-xs sm:text-sm bg-base-300 text-base-content border border-base-content/10 mt-3">
+              <pre data-prefix="$"><code>curl -sSL -O https://github.com/dineshkorukonda/ssh-client/releases/latest/download/ssh-client-linux-x64.tar.gz</code></pre>
+              <pre data-prefix="$"><code>tar -xzf ssh-client-linux-x64.tar.gz -C /opt/ssh-client</code></pre>
+              <pre data-prefix="$"><code>/opt/ssh-client/bin/ssh_client start</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Build from Source -->
+        <div class="card bg-base-200 border border-base-content/10">
+          <div class="card-body">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">🛠️</span>
+              <h4 class="text-lg font-bold">Build from Source (Elixir & OTP)</h4>
+            </div>
+            <p class="text-sm text-base-content/70 mt-1">Requires Elixir 1.15+ and Erlang/OTP 26+:</p>
+            <div class="mockup-code text-xs sm:text-sm bg-base-300 text-base-content border border-base-content/10 mt-3">
+              <pre data-prefix="$"><code>git clone https://github.com/dineshkorukonda/ssh-client.git &amp;&amp; cd ssh-client</code></pre>
+              <pre data-prefix="$"><code>mix deps.get</code></pre>
+              <pre data-prefix="$"><code># Run interactive development shell + desktop window:</code></pre>
+              <pre data-prefix="$"><code>iex -S mix</code></pre>
+              <pre data-prefix="$"><code># Or build a standalone self-contained release:</code></pre>
+              <pre data-prefix="$"><code>MIX_ENV=prod mix release</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Downloads Section -->
+    <section id="downloads" class="py-16 sm:py-24 px-4 bg-base-200/40 border-t border-base-content/10">
+      <div class="max-w-4xl mx-auto text-center space-y-6">
+        <h2 class="text-xs font-mono uppercase tracking-widest text-primary">Binary Downloads</h2>
+        <h3 class="text-3xl sm:text-4xl font-extrabold">Download ssh-client for your platform</h3>
+        <p class="text-base-content/70">
+          Standalone bundles include the embedded Erlang runtime and dependencies. No prerequisite runtime installations needed.
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6">
+          <div class="p-6 rounded-xl bg-base-100 border border-base-content/10 space-y-4 hover:border-primary/50 transition">
+            <div class="text-3xl">🪟</div>
+            <h4 class="font-bold text-xl">Windows x64</h4>
+            <p class="text-xs text-base-content/60 font-mono">Windows 10 / 11 (64-bit)</p>
+            <a href="https://github.com/dineshkorukonda/ssh-client/releases/latest/download/ssh-client-windows-x64.zip" class="btn btn-primary btn-block font-mono">
+              Download .zip package
+            </a>
+          </div>
+
+          <div class="p-6 rounded-xl bg-base-100 border border-base-content/10 space-y-4 hover:border-primary/50 transition">
+            <div class="text-3xl">🐧</div>
+            <h4 class="font-bold text-xl">Linux x64</h4>
+            <p class="text-xs text-base-content/60 font-mono">Ubuntu, Debian, Fedora, Arch (glibc 2.31+)</p>
+            <a href="https://github.com/dineshkorukonda/ssh-client/releases/latest/download/ssh-client-linux-x64.tar.gz" class="btn btn-primary btn-block font-mono">
+              Download .tar.gz bundle
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer items-center p-6 bg-base-300 border-t border-base-content/10 text-base-content/70">
+    <div class="max-w-6xl mx-auto w-full flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-mono">
+      <div class="flex items-center gap-2">
+        <span class="text-primary font-bold">ssh-client</span> &mdash; Open source under MIT License. Zero telemetry.
+      </div>
+      <div class="flex items-center gap-4">
+        <a href="https://github.com/dineshkorukonda/ssh-client" target="_blank" rel="noopener noreferrer" class="hover:text-primary transition">GitHub</a>
+        <a href="https://github.com/dineshkorukonda/ssh-client/blob/main/SPEC.md" target="_blank" rel="noopener noreferrer" class="hover:text-primary transition">Spec</a>
+        <a href="https://github.com/dineshkorukonda/ssh-client/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" class="hover:text-primary transition">Changelog</a>
+        <a href="#install" class="hover:text-primary transition">Install</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
