@@ -5,6 +5,8 @@ defmodule SSHClient.SocketAPITest do
   alias SSHClient.ServerManager
   alias SSHClient.SocketAPI
 
+  @moduletag :unix_only
+
   setup do
     sock_path =
       Path.join(System.tmp_dir!(), "omarchy_uds_test_#{System.unique_integer([:positive])}.sock")

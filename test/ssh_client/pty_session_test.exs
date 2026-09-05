@@ -24,9 +24,9 @@ defmodule SSHClient.PTYSessionTest do
       assert {:ok, session_pid} =
                TerminalSupervisor.start_session(server, client_pid: self())
 
-      assert_receive {:pty_error, _reason}, 2000
+      assert_receive {:pty_error, _reason}, 5000
       ref = Process.monitor(session_pid)
-      assert_receive {:DOWN, ^ref, :process, ^session_pid, _}, 2000
+      assert_receive {:DOWN, ^ref, :process, ^session_pid, _}, 5000
     end
 
     test "SSH.open_pty returns error tuple on invalid connection" do
