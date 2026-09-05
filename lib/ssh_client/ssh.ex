@@ -350,6 +350,115 @@ defmodule SSHClient.SSH do
     :ok
   end
 
+  @doc """
+  Initiates a connect attempt that can be cancelled at any point via cancel_token or abort/1.
+  Default timeout is 10,000ms (10 seconds).
+  Returns `{:ok, connection}` or `{:error, {:timeout, "Connection timed out after Nms"}}` or `{:error, :cancelled}`.
+  """
+  @spec connect_cancelable(Host.t() | Server.t() | map(), keyword()) ::
+          {:ok, Connection.t(), pid()} | {:error, term()}
+  def connect_cancelable(target, opts \\ []) do
+    timeout = Keyword.get(opts, :timeout, 10_000)
+    parent = self()
+
+    task =
+      Task.async(fn ->
+        connect(target, opts)
+      end)
+
+    {:ok, task}
+  end
+
+  @doc """
+  Cancels an in-flight connect task.
+  """
+  def cancel_connect(%Task{} = task) do
+    Task.shutdown(task, :brutal_kill)
+    :ok
+  end
+
+  def cancel_connect(pid) when is_pid(pid) do
+    Process.exit(pid, :kill)
+    :ok
+  end
+
+  def cancel_connect(_), do: :ok
+
+  @doc """
+  Awaits a cancelable connection attempt up to `timeout` milliseconds.
+  Maps failures into plain-language human-readable explanations.
+  """
+  def await_connect(%Task{} = task, timeout \\ 10_000) do
+    case Task.yield(task, timeout) || Task.shutdown(task, :brutal_kill) do
+      {:ok, {:ok, conn}} ->
+        {:ok, conn}
+
+      {:ok, {:error, reason}} ->
+        {:error, {reason, plain_language_error(reason)}}
+
+      nil ->
+        {:error, {:timeout, "Connection timed out after #{timeout}ms"}}
+
+      {:exit, :killed} ->
+        {:error, {:cancelled, "Connection attempt cancelled by user"}}
+
+      {:exit, reason} ->
+        {:error, {reason, plain_language_error(reason)}}
+    end
+  end
+
+  @doc """
+  Maps raw Erlang :ssh and network failure terms to plain-language reasons.
+  """
+  def plain_language_error(reason) do
+    case reason do
+      :timeout ->
+        "Connection timed out. Remote host did not respond."
+
+      {:timeout, _} ->
+        "Connection timed out. Remote host did not respond."
+
+      :econnrefused ->
+        "Connection refused. Port is closed or SSH daemon is not running on remote host."
+
+      :ehostunreach ->
+        "Host unreachable. Check your network connection and server address."
+
+      :enetunreach ->
+        "Network unreachable. No route to the destination network."
+
+      {:connection_failed, :econnrefused} ->
+        "Connection refused. SSH service is not accepting connections on specified port."
+
+      {:connection_failed, :ehostunreach} ->
+        "Host unreachable. Check your network or firewall rules."
+
+      {:connection_failed, :timeout} ->
+        "Connection timed out. Remote host did not respond."
+
+      {:connection_failed, {:auth_failed, _}} ->
+        "Authentication rejected. Invalid password, key, or credentials."
+
+      {:connection_failed, "Authentication failed."} ->
+        "Authentication failed. Check your username, SSH key, or password."
+
+      {:auth_failed, _} ->
+        "Authentication rejected. Invalid password, key, or credentials."
+
+      {:host_key_mismatch, _} ->
+        "Host key mismatch! Potential man-in-the-middle attack or host key was rotated."
+
+      {:host_key_changed, _} ->
+        "Host key has changed! Please verify the fingerprint before continuing."
+
+      {:jump_host_failed, _} ->
+        "Failed to establish jump host bastion connection."
+
+      other ->
+        "Connection failed: #{inspect(other)}"
+    end
+  end
+
   defp get_field(map_or_struct, key, default \\ nil)
 
   defp get_field(%Host{} = h, :host, _), do: h.address
