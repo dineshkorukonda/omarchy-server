@@ -114,4 +114,21 @@ defmodule SSHClient.SSHTest do
                SSH.run(%{host: "127.0.0.1", port: 59999}, "uptime", timeout: 200)
     end
   end
+
+  describe "connect_cancelable/2 and await_connect/2" do
+    test "aborts connection cleanly when cancel_connect is called" do
+      target = %{host: "192.0.2.1", port: 22}
+      {:ok, task} = SSH.connect_cancelable(target, timeout: 5000)
+      assert is_struct(task, Task)
+      assert :ok = SSH.cancel_connect(task)
+    end
+
+    test "plain_language_error maps reasons to descriptive strings" do
+      assert SSH.plain_language_error(:timeout) =~ "timed out"
+      assert SSH.plain_language_error(:econnrefused) =~ "Connection refused"
+      assert SSH.plain_language_error(:ehostunreach) =~ "Host unreachable"
+      assert SSH.plain_language_error({:auth_failed, "bad key"}) =~ "Authentication rejected"
+      assert SSH.plain_language_error({:host_key_changed, "fingerprint"}) =~ "Host key has changed"
+    end
+  end
 end
