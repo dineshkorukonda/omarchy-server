@@ -4,6 +4,8 @@ defmodule SSHClient.SSH do
   """
 
   alias SSHClient.Config.Server
+  alias SSHClient.Host
+  alias SSHClient.SSH.Auth
 
   defmodule Connection do
     @moduledoc """
@@ -60,8 +62,13 @@ defmodule SSHClient.SSH do
   Connects to a remote server using OTP :ssh, establishing a jump host tunnel if configured.
   Returns `{:ok, %Connection{}}` or `{:error, typed_error}`.
   """
-  @spec connect(Server.t() | map(), keyword()) :: {:ok, Connection.t()} | {:error, term()}
+  @spec connect(Host.t() | Server.t() | map(), keyword()) :: {:ok, Connection.t()} | {:error, term()}
   def connect(server_or_opts, opts \\ [])
+
+  def connect(%Host{} = host, opts) do
+    proxy_jump = host.jump_host
+    do_connect(host, proxy_jump, opts)
+  end
 
   def connect(%Server{} = server, opts) do
     proxy_jump = server.proxy_jump
@@ -79,7 +86,7 @@ defmodule SSHClient.SSH do
     user = get_field(target, :user)
     timeout = Keyword.get(opts, :timeout, 10_000)
 
-    case connect_direct(host, port, user, timeout, opts) do
+    case connect_direct(target, host, port, user, timeout, opts) do
       {:ok, conn_ref} ->
         {:ok, %Connection{conn_ref: conn_ref, jump_ref: nil, jump_port: nil, server: target}}
 
@@ -92,12 +99,11 @@ defmodule SSHClient.SSH do
     jump_info = parse_proxy_jump(proxy_jump)
     timeout = Keyword.get(opts, :timeout, 10_000)
 
-    case connect_direct(jump_info.host, jump_info.port, jump_info.user, timeout, opts) do
+    case connect_direct(target, jump_info.host, jump_info.port, jump_info.user, timeout, opts) do
       {:ok, jump_ref} ->
         target_host = get_field(target, :host)
         target_port = get_field(target, :port, 22)
         target_user = get_field(target, :user)
-
         target_host_charlist = String.to_charlist(target_host)
 
         case :ssh.tcpip_tunnel_to_server(
@@ -108,7 +114,7 @@ defmodule SSHClient.SSH do
                target_port
              ) do
           {:ok, listen_port} ->
-            case connect_direct("127.0.0.1", listen_port, target_user, timeout, opts) do
+            case connect_direct(target, "127.0.0.1", listen_port, target_user, timeout, opts) do
               {:ok, conn_ref} ->
                 {:ok,
                  %Connection{
@@ -133,9 +139,9 @@ defmodule SSHClient.SSH do
     end
   end
 
-  defp connect_direct(host, port, user, timeout, opts) do
+  defp connect_direct(target, host, port, user, timeout, opts) do
     host_charlist = ensure_charlist(host)
-    ssh_opts = build_ssh_options(user, opts)
+    ssh_opts = build_ssh_options(target, user, opts)
 
     try do
       :ssh.connect(host_charlist, port, ssh_opts, timeout)
@@ -145,7 +151,7 @@ defmodule SSHClient.SSH do
     end
   end
 
-  defp build_ssh_options(user, extra_opts) do
+  defp build_ssh_options(target, user, extra_opts) do
     base = [
       silently_accept_hosts: true,
       user_interaction: false
@@ -158,22 +164,8 @@ defmodule SSHClient.SSH do
         base
       end
 
-    user_dir =
-      Keyword.get(extra_opts, :user_dir) ||
-        Path.expand("~/.ssh")
-
-    base =
-      if File.dir?(user_dir) do
-        [{:user_dir, ensure_charlist(user_dir)} | base]
-      else
-        base
-      end
-
-    if password = Keyword.get(extra_opts, :password) do
-      [{:password, ensure_charlist(password)} | base]
-    else
-      base
-    end
+    auth_opts = Auth.build_options(target, extra_opts)
+    Keyword.merge(base, auth_opts)
   end
 
   @doc """
@@ -349,6 +341,11 @@ defmodule SSHClient.SSH do
   end
 
   defp get_field(map_or_struct, key, default \\ nil)
+
+  defp get_field(%Host{} = h, :host, _), do: h.address
+  defp get_field(%Host{} = h, :port, _), do: h.port || 22
+  defp get_field(%Host{} = h, :user, _), do: h.user
+  defp get_field(%Host{} = h, :proxy_jump, _), do: h.jump_host
 
   defp get_field(%Server{} = s, :host, _), do: s.host
   defp get_field(%Server{} = s, :port, _), do: s.port || 22
