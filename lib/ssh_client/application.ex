@@ -22,6 +22,9 @@ defmodule SSHClient.Application do
       end
 
     children = [
+      # Phoenix HTTP server
+      SSHClientWeb.Endpoint,
+      # SSH backend
       {Registry, keys: :unique, name: SSHClient.WorkerRegistry},
       SSHClient.ServerSupervisor,
       manager_child,
@@ -32,5 +35,12 @@ defmodule SSHClient.Application do
 
     opts = [strategy: :one_for_one, name: SSHClient.Supervisor]
     Supervisor.start_link(children, opts)
+  end
+
+  # Required by Phoenix to tell the Endpoint to reload config on hot upgrade
+  @impl true
+  def config_change(changed, _new, removed) do
+    SSHClientWeb.Endpoint.config_change(changed, removed)
+    :ok
   end
 end

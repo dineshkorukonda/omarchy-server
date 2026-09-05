@@ -45,10 +45,36 @@
     code, pre, .font-mono {
       font-family: 'JetBrains Mono', monospace;
     }
-    ::selection {
-      background-color: #dc2626;
-      color: #ffffff;
+    ::selection { background-color: #dc2626; color: #fff; }
+
+    .cmd-block { position: relative; }
+    .cmd-block pre {
+      background: #0c0c0c;
+      border: 1px solid #1f1f1f;
+      border-radius: 8px;
+      padding: 14px 48px 14px 16px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #d4d4d4;
+      overflow-x: auto;
+      white-space: pre;
     }
+    .cmd-block .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #1f1f1f;
+      border: 1px solid #2f2f2f;
+      color: #6b7280;
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: color .15s, border-color .15s;
+    }
+    .cmd-block .copy-btn:hover { color: #d4d4d4; border-color: #4b5563; }
+    .cmd-block .copy-btn.copied { color: #22c55e; border-color: #22c55e; }
   </style>
 </head>
 <body class="min-h-screen bg-[#050505] text-neutral-200 flex flex-col antialiased">
@@ -104,13 +130,17 @@
             The Windows bundle is a fully self-contained release with an embedded Erlang 27 runtime. It does not require any prerequisite Elixir or Erlang installations, nor does it require OpenSSH-for-Windows.
           </p>
 
-          <div class="mockup-code text-xs bg-[#121212] text-neutral-300 border border-neutral-800 font-mono">
-            <pre data-prefix="#"><code># 1. Download release archive (v0.0.1)</code></pre>
-            <pre data-prefix=">"><code>Invoke-WebRequest -Uri https://github.com/dineshkorukonda/ssh-client/releases/download/v0.0.1/ssh-client-windows-x64.zip -OutFile "$env:TEMP\ssh-client.zip"</code></pre>
-            <pre data-prefix="#"><code># 2. Extract to installation directory</code></pre>
-            <pre data-prefix=">"><code>Expand-Archive -Path "$env:TEMP\ssh-client.zip" -DestinationPath "$env:LOCALAPPDATA\Programs\ssh-client" -Force</code></pre>
-            <pre data-prefix="#"><code># 3. Launch desktop client</code></pre>
-            <pre data-prefix=">"><code>& "$env:LOCALAPPDATA\Programs\ssh-client\bin\ssh_client.bat" start</code></pre>
+          <div class="cmd-block">
+            <pre># Recommended: download and run the .exe installer
+# It installs to Program Files, creates a Start Menu shortcut,
+# and opens your browser to http://localhost:4000 automatically.
+ssh-client-setup-v0.0.1-windows-x64.exe
+
+# Alternatively (PowerShell) — manual zip extract:
+Invoke-WebRequest -Uri https://github.com/dineshkorukonda/ssh-client/releases/download/v0.0.1/ssh-client-windows-x64.zip -OutFile "$env:TEMP\ssh-client.zip"
+Expand-Archive -Path "$env:TEMP\ssh-client.zip" -DestinationPath "$env:LOCALAPPDATA\Programs\ssh-client" -Force
+& "$env:LOCALAPPDATA\Programs\ssh-client\bin\ssh_client.bat" start</pre>
+            <button class="copy-btn" onclick="copyCode(this)">copy</button>
           </div>
 
           <div class="text-xs text-neutral-400 space-y-1 font-mono">
@@ -129,13 +159,16 @@
             Linux releases are distributed as a standalone tarball containing OTP release executables and WebKitGTK runtime wrappers.
           </p>
 
-          <div class="mockup-code text-xs bg-[#121212] text-neutral-300 border border-neutral-800 font-mono">
-            <pre data-prefix="#"><code># 1. Download release tarball (v0.0.1)</code></pre>
-            <pre data-prefix="$"><code>curl -sSL -O https://github.com/dineshkorukonda/ssh-client/releases/download/v0.0.1/ssh-client-linux-x64.tar.gz</code></pre>
-            <pre data-prefix="#"><code># 2. Unpack into target destination</code></pre>
-            <pre data-prefix="$"><code>sudo mkdir -p /opt/ssh-client &amp;&amp; sudo tar -xzf ssh-client-linux-x64.tar.gz -C /opt/ssh-client</code></pre>
-            <pre data-prefix="#"><code># 3. Start the application daemon or desktop window</code></pre>
-            <pre data-prefix="$"><code>/opt/ssh-client/bin/ssh_client start</code></pre>
+          <div class="cmd-block">
+            <pre># Download release tarball (v0.0.1)
+curl -sSL -O https://github.com/dineshkorukonda/ssh-client/releases/download/v0.0.1/ssh-client-linux-x64.tar.gz
+
+# Unpack into target destination
+sudo mkdir -p /opt/ssh-client && sudo tar -xzf ssh-client-linux-x64.tar.gz -C /opt/ssh-client
+
+# Start the application (opens GUI in browser at http://localhost:4000)
+/opt/ssh-client/bin/ssh_client start</pre>
+            <button class="copy-btn" onclick="copyCode(this)">copy</button>
           </div>
 
           <div class="text-xs text-neutral-400 space-y-1 font-mono">
@@ -154,14 +187,17 @@
             If you wish to compile or develop directly against the repository:
           </p>
 
-          <div class="mockup-code text-xs bg-[#121212] text-neutral-300 border border-neutral-800 font-mono">
-            <pre data-prefix="$"><code>git clone https://github.com/dineshkorukonda/ssh-client.git</code></pre>
-            <pre data-prefix="$"><code>cd ssh-client</code></pre>
-            <pre data-prefix="$"><code>mix deps.get</code></pre>
-            <pre data-prefix="$"><code># Run interactive development session:</code></pre>
-            <pre data-prefix="$"><code>iex -S mix</code></pre>
-            <pre data-prefix="$"><code># Or produce a production release bundle:</code></pre>
-            <pre data-prefix="$"><code>MIX_ENV=prod mix release ssh_client</code></pre>
+          <div class="cmd-block">
+            <pre>git clone https://github.com/dineshkorukonda/ssh-client.git
+cd ssh-client
+mix deps.get
+
+# Run interactive development session:
+iex -S mix
+
+# Or produce a production release bundle:
+MIX_ENV=prod mix release ssh_client</pre>
+            <button class="copy-btn" onclick="copyCode(this)">copy</button>
           </div>
         </div>
 
@@ -292,5 +328,17 @@
     </div>
   </footer>
 
+  <script>
+    function copyCode(btn) {
+      const pre = btn.previousElementSibling;
+      const text = pre.innerText.replace(/\n?$/, '');
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 1800);
+      });
+    }
+  </script>
 </body>
 </html>
+

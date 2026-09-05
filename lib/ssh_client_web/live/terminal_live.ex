@@ -1,85 +1,127 @@
 defmodule SSHClientWeb.TerminalLive do
   @moduledoc """
-  Phoenix LiveView component hosting the xterm.js embedded terminal widget
-  for interactive terminal sessions.
+  Phoenix LiveView hosting the xterm.js embedded terminal for interactive SSH sessions.
   """
 
-  @doc """
-  Returns the initial state for the terminal view.
-  """
-  def initial_state(opts \\ []) do
-    server_id = Keyword.get(opts, :server_id, "local")
-    title = Keyword.get(opts, :title, "Terminal")
+  use Phoenix.LiveView, layout: {SSHClientWeb.Layouts, :app}
 
-    %{
-      server_id: server_id,
-      title: title,
-      connected: false,
-      theme: %{
-        background: "#09090b",
-        foreground: "#f4f4f5",
-        cursor: "#3b82f6"
-      },
-      cols: 80,
-      rows: 24
-    }
+  @impl true
+  def mount(%{"id" => server_id}, _session, socket) do
+    socket =
+      socket
+      |> assign(:page_title, "Terminal — #{server_id}")
+      |> assign(:server_id, server_id)
+      |> assign(:connected, false)
+      |> assign(:cols, 80)
+      |> assign(:rows, 24)
+
+    {:ok, socket}
   end
 
-  @doc """
-  Renders the HTML container and JavaScript initialization hook for xterm.js.
-  """
-  def render_html(assigns) do
-    """
-    <div class="flex flex-col h-full bg-zinc-950 text-zinc-100 font-sans" id="terminal-wrapper">
-      <!-- Terminal Tab Bar -->
-      <div class="flex items-center justify-between px-4 py-2 bg-zinc-900 border-b border-zinc-800 select-none">
-        <div class="flex items-center gap-2">
-          <div class="flex gap-1.5 mr-2">
-            <span class="w-3 h-3 rounded-full bg-red-500/80 inline-block"></span>
-            <span class="w-3 h-3 rounded-full bg-amber-500/80 inline-block"></span>
-            <span class="w-3 h-3 rounded-full bg-emerald-500/80 inline-block"></span>
-          </div>
-          <span class="font-mono text-xs text-zinc-300 font-semibold">#{assigns.title}</span>
+  @impl true
+  def handle_event("terminal_ready", _params, socket) do
+    {:noreply, assign(socket, :connected, true)}
+  end
+
+  def handle_event("terminal_data", %{"data" => _data}, socket) do
+    # Forward data to SSH PTY session via channel
+    {:noreply, socket}
+  end
+
+  @impl true
+  def render(assigns) do
+    ~H"""
+    <div class="flex flex-col h-screen bg-[#050505]">
+      <!-- Terminal topbar -->
+      <div class="h-10 flex items-center justify-between px-4 bg-[#0a0a0a] border-b border-[#1f1f1f] shrink-0">
+        <div class="flex items-center gap-3">
+          <a
+            href="/"
+            class="text-zinc-600 hover:text-zinc-400 text-xs font-mono transition-colors"
+          >
+            &larr; hosts
+          </a>
+          <span class="text-zinc-800">|</span>
+          <span class="text-zinc-400 text-xs font-mono"><%= @server_id %></span>
         </div>
-        <div class="flex items-center gap-2 text-xs text-zinc-400">
-          <span class="px-2 py-0.5 rounded bg-zinc-800 font-mono text-[11px]">80x24</span>
+        <div class="flex items-center gap-2">
+          <span class={["inline-flex items-center gap-1.5 text-[11px] font-mono",
+            if(@connected, do: "text-emerald-400", else: "text-zinc-600")]}>
+            <span class={["w-1.5 h-1.5 rounded-full",
+              if(@connected, do: "bg-emerald-400 animate-pulse", else: "bg-zinc-700")]}></span>
+            <%= if @connected, do: "connected", else: "connecting..." %>
+          </span>
+          <span class="text-zinc-700 text-[11px] font-mono"><%= @cols %>x<%= @rows %></span>
         </div>
       </div>
 
-      <!-- xterm.js Container -->
+      <!-- xterm.js container -->
       <div
         id="xterm-container"
         phx-hook="TerminalHook"
-        class="flex-1 w-full h-full p-2 bg-zinc-950 overflow-hidden"
-        data-cols="#{assigns.cols}"
-        data-rows="#{assigns.rows}"
+        phx-update="ignore"
+        class="flex-1 w-full overflow-hidden p-2"
+        data-server-id={@server_id}
+        data-cols={@cols}
+        data-rows={@rows}
       ></div>
+    </div>
 
-      <!-- Script Embed for standalone rendering -->
-      <script>
-        window.initXterm = function(el) {
-          if (typeof Terminal === 'undefined') return;
+    <script>
+      // TerminalHook — mounts xterm.js and wires to Phoenix channel
+      window.TerminalHook = {
+        mounted() {
+          const el = this.el;
+          const lv = this;
+
+          if (typeof Terminal === 'undefined') {
+            el.innerHTML = '<div style="color:#ef4444;font-family:monospace;padding:1rem">xterm.js not loaded</div>';
+            return;
+          }
+
           const term = new Terminal({
             cursorBlink: true,
-            theme: {
-              background: '#09090b',
-              foreground: '#f4f4f5',
-              cursor: '#3b82f6'
-            },
-            fontFamily: 'Menlo, Monaco, Consolas, "Courier New", monospace',
             fontSize: 13,
-            lineHeight: 1.2
+            lineHeight: 1.25,
+            fontFamily: "'JetBrains Mono', 'Menlo', 'Consolas', monospace",
+            theme: {
+              background: '#050505',
+              foreground: '#e4e4e7',
+              cursor:     '#3b82f6',
+              black:      '#050505',
+              brightBlack:'#27272a',
+              red:        '#ef4444',
+              blue:       '#3b82f6',
+              cyan:       '#06b6d4',
+              green:      '#22c55e',
+              yellow:     '#eab308',
+              white:      '#e4e4e7',
+              brightWhite:'#fafafa'
+            }
           });
+
+          const fitAddon = (typeof FitAddon !== 'undefined') ? new FitAddon.FitAddon() : null;
+          if (fitAddon) term.loadAddon(fitAddon);
+
           term.open(el);
-          term.writeln('\\x1b[1;34mssh-client\\x1b[0m — interactive terminal');
-          term.writeln('Type to test local input echo:');
+          if (fitAddon) fitAddon.fit();
+
+          term.writeln('\x1b[1;34mssh-client\x1b[0m \x1b[2mv0.0.1\x1b[0m');
+          term.writeln('\x1b[2mConnecting to ' + (el.dataset.serverId || 'server') + '...\x1b[0m');
+          term.writeln('');
+
+          lv.pushEvent("terminal_ready", {});
+
           term.onData(function(data) {
-            term.write(data);
+            lv.pushEvent("terminal_data", { data: data });
           });
-          return term;
-        };
-      </script>
-    </div>
+
+          window.addEventListener('resize', () => {
+            if (fitAddon) fitAddon.fit();
+          });
+        }
+      };
+    </script>
     """
   end
 end

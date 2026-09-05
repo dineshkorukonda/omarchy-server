@@ -80,7 +80,7 @@ jobs:
         run: docker compose -f docker-compose.test.yml down
 
   package-windows:
-    name: Package Windows Release (.zip / .exe)
+    name: Package Windows Release (.zip + .exe installer)
     runs-on: windows-latest
     needs: test
 
@@ -112,16 +112,36 @@ jobs:
           $env:MIX_ENV = "prod"
           mix release ssh_client
 
-      - name: Archive Windows Release
+      - name: Archive Windows Release (zip)
         shell: pwsh
         run: |
           Compress-Archive -Path _build\prod\rel\ssh_client\* -DestinationPath ssh-client-windows-x64.zip
 
-      - name: Upload Windows Release Artifact
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          $url = "https://jrsoftware.org/download.php/is.exe"
+          $installer = "$env:TEMP\innosetup.exe"
+          Invoke-WebRequest -Uri $url -OutFile $installer
+          Start-Process -FilePath $installer -Args "/VERYSILENT /NORESTART /SP-" -Wait
+          echo "C:\Program Files (x86)\Inno Setup 6" | Out-File -Append -FilePath $env:GITHUB_PATH
+
+      - name: Build Windows installer (.exe)
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" windows\installer.iss
+
+      - name: Upload Windows zip artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ssh-client-windows-x64
+          name: ssh-client-windows-x64-zip
           path: ssh-client-windows-x64.zip
+
+      - name: Upload Windows installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ssh-client-windows-x64-installer
+          path: installer\ssh-client-setup-v*-windows-x64.exe
 
   package-linux:
     name: Package Linux Release (.tar.gz)
@@ -174,10 +194,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download Windows Release Artifact
+      - name: Download Windows zip artifact
         uses: actions/download-artifact@v4
         with:
-          name: ssh-client-windows-x64
+          name: ssh-client-windows-x64-zip
+
+      - name: Download Windows installer artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ssh-client-windows-x64-installer
 
       - name: Download Linux Release Artifact
         uses: actions/download-artifact@v4
@@ -192,5 +217,5 @@ jobs:
           generate_release_notes: true
           files: |
             ssh-client-windows-x64.zip
+            ssh-client-setup-v*-windows-x64.exe
             ssh-client-linux-x64.tar.gz
-

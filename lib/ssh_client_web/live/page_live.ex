@@ -1,23 +1,37 @@
 defmodule SSHClientWeb.PageLive do
   @moduledoc """
-  Minimal hello / status LiveView page for desktop shell bootstrap.
+  Status / hello page LiveView.
   """
+
+  use Phoenix.LiveView, layout: {SSHClientWeb.Layouts, :app}
+
+  @impl true
+  def mount(_params, _session, socket) do
+    socket =
+      socket
+      |> assign(:page_title, "ssh-client")
+      |> assign(:app_status, :ready)
+      |> assign(:platform, detect_os())
+      |> assign(:version, "0.0.1")
+
+    {:ok, socket}
+  end
+
+  @impl true
+  def render(assigns) do
+    ~H"""
+    <div class="flex items-center justify-center h-full bg-[#050505] text-zinc-400 text-sm font-mono">
+      ssh-client v<%= @version %> — <%= @platform %>
+    </div>
+    """
+  end
 
   def detect_os do
     case :os.type() do
-      {:win32, _} -> "Windows (WebView2)"
-      {:unix, :darwin} -> "macOS (WebKit)"
-      {:unix, _} -> "Linux (WebKitGTK)"
+      {:win32, _} -> "Windows"
+      {:unix, :darwin} -> "macOS"
+      {:unix, _} -> "Linux"
       _ -> "Unknown"
     end
-  end
-
-  def initial_state do
-    %{
-      page_title: "ssh-client",
-      app_status: :ready,
-      platform: detect_os(),
-      version: "0.2.0"
-    }
   end
 end
