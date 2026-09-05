@@ -1,10 +1,10 @@
-defmodule OmarchyServer.MixProject do
+defmodule SSHClient.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :omarchy_server,
-      version: "0.1.0",
+      app: :ssh_client,
+      version: "0.2.0",
       elixir: "~> 1.18 or ~> 1.19 or ~> 1.20",
       start_permanent: Mix.env() == :prod,
       deps: deps()
@@ -15,7 +15,7 @@ defmodule OmarchyServer.MixProject do
   def application do
     [
       extra_applications: [:logger, :ssh],
-      mod: {OmarchyServer.Application, []}
+      mod: {SSHClient.Application, []}
     ]
   end
 
