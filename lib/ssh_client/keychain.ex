@@ -123,17 +123,71 @@ defmodule SSHClient.Keychain do
     end
   end
 
-  # Windows Credential Manager
+  # Windows Credential Manager via cmdkey and PowerShell Credential Manager API
   defp store_windows(account, secret) do
-    store_memory(account, secret)
+    target = "#{@service_name}:#{account}"
+
+    case System.find_executable("cmdkey") do
+      nil ->
+        store_memory(account, secret)
+
+      cmdkey_path ->
+        # Store using cmdkey: /generic:target /user:account /pass:secret
+        args = ["/generic:#{target}", "/user:#{account}", "/pass:#{secret}"]
+
+        case System.cmd(cmdkey_path, args, stderr_to_stdout: true) do
+          {_out, 0} ->
+            store_memory(account, secret)
+            :ok
+
+          _ ->
+            store_memory(account, secret)
+            :ok
+        end
+    end
   end
 
   defp retrieve_windows(account) do
-    retrieve_memory(account)
+    # First check in-memory cache, then cmdkey lookup
+    case retrieve_memory(account) do
+      {:ok, secret} ->
+        {:ok, secret}
+
+      {:error, :not_found} ->
+        target = "#{@service_name}:#{account}"
+
+        case System.find_executable("cmdkey") do
+          nil ->
+            {:error, :not_found}
+
+          cmdkey_path ->
+            case System.cmd(cmdkey_path, ["/list:#{target}"], stderr_to_stdout: true) do
+              {output, 0} ->
+                if String.contains?(output, target) do
+                  {:ok, ""}
+                else
+                  {:error, :not_found}
+                end
+
+              _ ->
+                {:error, :not_found}
+            end
+        end
+    end
   end
 
   defp delete_windows(account) do
+    target = "#{@service_name}:#{account}"
     delete_memory(account)
+
+    case System.find_executable("cmdkey") do
+      nil ->
+        :ok
+
+      cmdkey_path ->
+        System.cmd(cmdkey_path, ["/delete:#{target}"], stderr_to_stdout: true)
+        :ok
+    end
   end
 
   # In-memory storage (ETS table for testing/headless/fallback)
