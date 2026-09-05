@@ -62,7 +62,8 @@ defmodule SSHClient.SSH do
   Connects to a remote server using OTP :ssh, establishing a jump host tunnel if configured.
   Returns `{:ok, %Connection{}}` or `{:error, typed_error}`.
   """
-  @spec connect(Host.t() | Server.t() | map(), keyword()) :: {:ok, Connection.t()} | {:error, term()}
+  @spec connect(Host.t() | Server.t() | map(), keyword()) ::
+          {:ok, Connection.t()} | {:error, term()}
   def connect(server_or_opts, opts \\ [])
 
   def connect(%Host{} = host, opts) do

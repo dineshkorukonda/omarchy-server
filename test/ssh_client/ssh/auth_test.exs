@@ -9,9 +9,8 @@ defmodule SSHClient.SSH.AuthTest do
   setup_all do
     File.mkdir_p!(@temp_dir)
 
-    # Create dummy identity files
-    File.write!(Path.join(@temp_dir, "id_rsa"), "dummy_rsa")
-    File.write!(Path.join(@temp_dir, "id_ed25519"), "dummy_ed25519")
+    File.write!(Path.join(@temp_dir, "test_id_rsa"), "dummy_rsa")
+    File.write!(Path.join(@temp_dir, "test_id_ed25519"), "dummy_ed25519")
     File.write!(Path.join(@temp_dir, "custom_key"), "dummy_custom")
 
     on_exit(fn ->
@@ -24,27 +23,42 @@ defmodule SSHClient.SSH.AuthTest do
   describe "resolve_identities/1" do
     test "tries custom path, id_ed25519, id_rsa in order" do
       custom_key = Path.join(@temp_dir, "custom_key")
-      identities = Auth.resolve_identities(user_dir: @temp_dir, identity_file: custom_key)
+
+      identities =
+        Auth.resolve_identities(
+          user_dir: @temp_dir,
+          identity_file: custom_key,
+          standard_key_names: ["test_id_ed25519", "test_id_rsa"]
+        )
 
       assert length(identities) == 3
       assert Enum.at(identities, 0) == custom_key
-      assert Enum.at(identities, 1) == Path.join(@temp_dir, "id_ed25519")
-      assert Enum.at(identities, 2) == Path.join(@temp_dir, "id_rsa")
+      assert Enum.at(identities, 1) == Path.join(@temp_dir, "test_id_ed25519")
+      assert Enum.at(identities, 2) == Path.join(@temp_dir, "test_id_rsa")
     end
 
     test "resolves standard identities in order when no custom key is provided" do
-      identities = Auth.resolve_identities(user_dir: @temp_dir)
+      identities =
+        Auth.resolve_identities(
+          user_dir: @temp_dir,
+          standard_key_names: ["test_id_ed25519", "test_id_rsa"]
+        )
 
       assert length(identities) == 2
-      assert Enum.at(identities, 0) == Path.join(@temp_dir, "id_ed25519")
-      assert Enum.at(identities, 1) == Path.join(@temp_dir, "id_rsa")
+      assert Enum.at(identities, 0) == Path.join(@temp_dir, "test_id_ed25519")
+      assert Enum.at(identities, 1) == Path.join(@temp_dir, "test_id_rsa")
     end
 
     test "ignores non-existent custom key" do
-      identities = Auth.resolve_identities(user_dir: @temp_dir, identity_file: "/non/existent/path")
+      identities =
+        Auth.resolve_identities(
+          user_dir: @temp_dir,
+          identity_file: "/non/existent/path",
+          standard_key_names: ["test_id_ed25519", "test_id_rsa"]
+        )
 
       assert length(identities) == 2
-      assert Enum.at(identities, 0) == Path.join(@temp_dir, "id_ed25519")
+      assert Enum.at(identities, 0) == Path.join(@temp_dir, "test_id_ed25519")
     end
   end
 
@@ -64,7 +78,12 @@ defmodule SSHClient.SSH.AuthTest do
 
     test "handles single atom or nil" do
       assert Auth.auth_methods_for_order(:password) == [~c"password"]
-      assert Auth.auth_methods_for_order(nil) == [~c"publickey", ~c"password", ~c"keyboard-interactive"]
+
+      assert Auth.auth_methods_for_order(nil) == [
+               ~c"publickey",
+               ~c"password",
+               ~c"keyboard-interactive"
+             ]
     end
   end
 

@@ -17,15 +17,9 @@ defmodule SSHClient.SSH.Auth do
   """
   @spec resolve_identities(keyword() | map()) :: list(String.t())
   def resolve_identities(opts \\ []) do
-    custom_path =
-      Keyword.get(opts, :identity_file) ||
-        Map.get(opts, :identity_file) ||
-        Map.get(opts, "identity_file")
-
-    user_dir =
-      Keyword.get(opts, :user_dir) ||
-        Map.get(opts, :user_dir) ||
-        Path.expand("~/.ssh")
+    custom_path = get_opt(opts, :identity_file)
+    user_dir = get_opt(opts, :user_dir) || Path.expand("~/.ssh")
+    key_names = get_opt(opts, :standard_key_names) || @standard_key_names
 
     custom_identities =
       if custom_path && File.exists?(Path.expand(custom_path)) do
@@ -35,7 +29,7 @@ defmodule SSHClient.SSH.Auth do
       end
 
     standard_identities =
-      @standard_key_names
+      key_names
       |> Enum.map(&Path.join(user_dir, &1))
       |> Enum.filter(&File.exists?/1)
 
@@ -81,7 +75,11 @@ defmodule SSHClient.SSH.Auth do
   - A map of `%{prompt_substring => answer}`
   - A static answer string (e.g. password fallback)
   """
-  @spec build_keyboard_interactive_fun((String.t(), String.t(), list({String.t(), boolean()}) -> list(String.t())) | map() | String.t()) ::
+  @spec build_keyboard_interactive_fun(
+          (String.t(), String.t(), list({String.t(), boolean()}) -> list(String.t()))
+          | map()
+          | String.t()
+        ) ::
           (charlist(), charlist(), list({charlist(), boolean()}) -> list(charlist()))
   def build_keyboard_interactive_fun(fun) when is_function(fun, 3) do
     fn name, instruction, prompts ->
@@ -169,17 +167,25 @@ defmodule SSHClient.SSH.Auth do
     # Password option
     base =
       case Keyword.get(opts, :password) do
-        nil -> base
-        pwd when is_binary(pwd) -> [{:password, String.to_charlist(pwd)} | base]
-        pwd when is_list(pwd) -> [{:password, pwd} | base]
+        nil ->
+          base
+
+        pwd when is_binary(pwd) ->
+          [{:password, String.to_charlist(pwd)} | base]
+
+        pwd when is_list(pwd) ->
+          [{:password, pwd} | base]
       end
 
     # Keyboard-interactive callback option
     base =
       case Keyword.get(opts, :keyboard_interact_fun) do
-        nil -> base
+        nil ->
+          base
+
         kbi_fun when is_function(kbi_fun, 3) ->
           [{:keyboard_interact_fun, build_keyboard_interactive_fun(kbi_fun)} | base]
+
         handler when is_map(handler) or is_binary(handler) ->
           [{:keyboard_interact_fun, build_keyboard_interactive_fun(handler)} | base]
       end
@@ -193,9 +199,20 @@ defmodule SSHClient.SSH.Auth do
 
       [] ->
         case Keyword.get(opts, :user_dir) do
-          nil -> base
-          dir -> [{:user_dir, String.to_charlist(Path.expand(dir))} | base]
+          nil ->
+            base
+
+          dir ->
+            [{:user_dir, String.to_charlist(Path.expand(dir))} | base]
         end
     end
   end
+
+  defp get_opt(opts, key) when is_list(opts), do: Keyword.get(opts, key)
+
+  defp get_opt(opts, key) when is_map(opts) do
+    Map.get(opts, key) || Map.get(opts, to_string(key))
+  end
+
+  defp get_opt(_opts, _key), do: nil
 end
