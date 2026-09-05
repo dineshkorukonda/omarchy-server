@@ -17,18 +17,22 @@ defmodule SSHClient.Config do
   end
 
   @doc """
-  Returns the default servers.json config file path.
+  Returns the default servers.json config file path using OS-correct paths.
   Priority:
-  1. System env OMARCHY_SERVERS_CONFIG
-  2. ~/.config/omarchy/servers.json (if it exists)
-  3. ~/.config/omarchy/servers.yaml (legacy fallback)
-  4. ~/.config/omarchy/servers.json (default)
+  1. System env SSH_CLIENT_SERVERS_CONFIG or OMARCHY_SERVERS_CONFIG
+  2. OS-specific user config dir (:filename.basedir(:user_config, "ssh-client"))
+  3. Legacy fallback: ~/.config/omarchy/servers.json (if it exists)
+  4. Legacy fallback: ~/.config/omarchy/servers.yaml (if it exists)
+  5. Default OS-specific: Path.join(os_config_dir(), "servers.json")
   """
   @spec default_config_path() :: Path.t()
   def default_config_path do
     cond do
-      env_path = System.get_env("OMARCHY_SERVERS_CONFIG") ->
+      env_path = System.get_env("SSH_CLIENT_SERVERS_CONFIG") || System.get_env("OMARCHY_SERVERS_CONFIG") ->
         Path.expand(env_path)
+
+      File.exists?(Path.join(os_config_dir(), "servers.json")) ->
+        Path.join(os_config_dir(), "servers.json")
 
       File.exists?(Path.expand("~/.config/omarchy/servers.json")) ->
         Path.expand("~/.config/omarchy/servers.json")
@@ -37,7 +41,22 @@ defmodule SSHClient.Config do
         Path.expand("~/.config/omarchy/servers.yaml")
 
       true ->
-        Path.expand("~/.config/omarchy/servers.json")
+        Path.join(os_config_dir(), "servers.json")
+    end
+  end
+
+  @doc """
+  Returns the OS-correct user configuration directory for the application.
+  Uses Erlang's `:filename.basedir/2` to resolve:
+  - Windows: %APPDATA%/ssh-client
+  - Linux: ~/.config/ssh-client (or $XDG_CONFIG_HOME/ssh-client)
+  - macOS: ~/Library/Application Support/ssh-client
+  """
+  @spec os_config_dir() :: Path.t()
+  def os_config_dir do
+    case :filename.basedir(:user_config, "ssh-client") do
+      dir when is_binary(dir) -> dir
+      dir when is_list(dir) -> List.to_string(dir)
     end
   end
 
