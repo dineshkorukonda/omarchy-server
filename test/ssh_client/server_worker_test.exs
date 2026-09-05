@@ -267,5 +267,24 @@ defmodule SSHClient.ServerWorkerTest do
       assert restarted_worker_a != worker_a
       assert Process.alive?(restarted_worker_a)
     end
+
+    test "set_focus toggles focused? state on worker" do
+      mock_runner = fn
+        _server, :connect -> {:ok, :fake_conn}
+        _server, {:exec, _conn, _cmd} -> {:ok, "systemd\n", 0}
+        _server, {:poll, _conn, _checks} -> {:ok, %{metrics: %{}, checks: %{}}}
+        _server, {:close, _conn} -> :ok
+      end
+
+      {:ok, worker} =
+        ServerWorker.start_link(@test_server,
+          runner: mock_runner,
+          name: nil,
+          poll_interval: 10_000
+        )
+
+      assert :ok = ServerWorker.set_focus(worker, false)
+      assert :ok = ServerWorker.set_focus(worker, true)
+    end
   end
 end
