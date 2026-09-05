@@ -32,12 +32,16 @@ defmodule SSHClientWeb do
     quote do
       use Phoenix.LiveView,
         layout: {SSHClientWeb.Layouts, :app}
+
+      unquote(html_helpers())
     end
   end
 
   def live_component do
     quote do
       use Phoenix.LiveComponent
+
+      unquote(html_helpers())
     end
   end
 
@@ -45,8 +49,7 @@ defmodule SSHClientWeb do
     quote do
       use Phoenix.Component
 
-      import Phoenix.Controller,
-        only: [get_csrf_token: 0, view_module: 1, view_template: 1]
+      import Phoenix.Controller, only: [get_csrf_token: 0]
 
       unquote(html_helpers())
     end
@@ -54,9 +57,6 @@ defmodule SSHClientWeb do
 
   defp html_helpers do
     quote do
-      use Phoenix.HTML
-
-      import Phoenix.LiveView.Helpers
       import SSHClientWeb.CoreComponents
     end
   end

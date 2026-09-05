@@ -1,6 +1,8 @@
 defmodule SSHClientWeb.Router do
   use Phoenix.Router, helpers: false
 
+  import Plug.Conn
+  import Phoenix.Controller
   import Phoenix.LiveView.Router
 
   pipeline :browser do
