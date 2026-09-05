@@ -137,7 +137,7 @@ defmodule SSHClientWeb.HostLive do
         400
 
       String.contains?(target_str, query) ->
-        200 + (100 - min(String.length(target_str), 100))
+        300 + (100 - min(String.length(target_str), 100))
 
       String.starts_with?(word_initials, query) ->
         150
@@ -145,8 +145,17 @@ defmodule SSHClientWeb.HostLive do
       subsequence_match?(String.to_charlist(query), String.to_charlist(word_initials)) ->
         100
 
-      String.length(query) >= 3 and subsequence_match?(String.to_charlist(query), String.to_charlist(target_str)) ->
-        50
+      # Check if query is an acronym/subsequence formed by word boundaries or parts
+      subsequence_match?(String.to_charlist(query), String.to_charlist(target_str)) and
+        (String.length(query) >= 3 or Enum.any?(words, fn w -> String.starts_with?(w, String.slice(query, 0, 1)) end)) ->
+        # Only accept 2-char subsequence if at least one word starts with the first char
+        # e.g. "db" in "Production Web Alpha" -> starts with p, w, a (no 'd' at word start, so rejected!)
+        # in "Database Master" -> starts with 'd'!
+        if Enum.any?(words, fn w -> String.starts_with?(w, String.slice(query, 0, 1)) end) do
+          80
+        else
+          0
+        end
 
       true ->
         0
