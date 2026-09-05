@@ -71,6 +71,15 @@ defmodule SSHClient.SocketAPI do
         acceptor_pid = spawn_link(fn -> accept_loop(listen_socket) end)
         {:ok, %{state | acceptor_pid: acceptor_pid}}
 
+      {:error, reason} when reason in [:eafnosupport, :enotsup, :einval] ->
+        # Unix domain sockets not supported on this OS (e.g. Windows)
+        state = %__MODULE__{
+          socket_path: nil,
+          listen_socket: nil
+        }
+
+        {:ok, state}
+
       {:error, reason} ->
         {:stop, {:listen_failed, reason}}
     end

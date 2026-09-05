@@ -11,7 +11,7 @@ defmodule SSHClient.SSH.KeyCallback do
 
   @impl :ssh_client_key_api
   def is_host_key(key, host, port, _algorithm, connect_opts) do
-    host_str = to_string(host)
+    host_str = normalize_host_param(host)
     extra_opts = extract_extra_opts(connect_opts)
 
     cond do
@@ -47,8 +47,27 @@ defmodule SSHClient.SSH.KeyCallback do
   @impl :ssh_client_key_api
   def add_host_key(host, port, key, connect_opts) do
     extra_opts = extract_extra_opts(connect_opts)
-    HostKeyVerifier.save_host_key(to_string(host), port, key, extra_opts)
+    HostKeyVerifier.save_host_key(normalize_host_param(host), port, key, extra_opts)
   end
+
+  defp normalize_host_param(host) when is_binary(host), do: host
+  defp normalize_host_param(host) when is_list(host) do
+    case host do
+      [first | _] when is_binary(first) ->
+        first
+
+      [first | _] when is_list(first) ->
+        to_string(first)
+
+      _ ->
+        try do
+          to_string(host)
+        rescue
+          _ -> inspect(host)
+        end
+    end
+  end
+  defp normalize_host_param(host), do: to_string(host)
 
   defp extract_extra_opts(connect_opts) when is_list(connect_opts) do
     connect_opts

@@ -9,8 +9,18 @@ defmodule SSHClient.SSH.HostKeyVerifier do
 
   @type verification_result ::
           {:ok, :trusted, %{fingerprint: String.t()}}
-          | {:error, {:first_connect, %{host: String.t(), port: pos_integer(), fingerprint: String.t(), key: term()}}}
-          | {:error, {:host_key_changed, %{host: String.t(), port: pos_integer(), old_fingerprint: String.t(), new_fingerprint: String.t(), key: term()}}}
+          | {:error,
+             {:first_connect,
+              %{host: String.t(), port: pos_integer(), fingerprint: String.t(), key: term()}}}
+          | {:error,
+             {:host_key_changed,
+              %{
+                host: String.t(),
+                port: pos_integer(),
+                old_fingerprint: String.t(),
+                new_fingerprint: String.t(),
+                key: term()
+              }}}
 
   @doc """
   Computes standard OpenSSH SHA256 fingerprint for a public key.
@@ -121,7 +131,8 @@ defmodule SSHClient.SSH.HostKeyVerifier do
 
     case matching_host_entries do
       [] ->
-        {:error, {:first_connect, %{host: target_host, port: port, fingerprint: new_fp, key: key}}}
+        {:error,
+         {:first_connect, %{host: target_host, port: port, fingerprint: new_fp, key: key}}}
 
       existing_entries ->
         exact_match =
@@ -215,7 +226,10 @@ defmodule SSHClient.SSH.HostKeyVerifier do
           end
         end)
 
-      File.write!(path, Enum.join(filtered_lines, "\n") <> (if filtered_lines == [], do: "", else: "\n"))
+      File.write!(
+        path,
+        Enum.join(filtered_lines, "\n") <> if(filtered_lines == [], do: "", else: "\n")
+      )
     end
 
     save_host_key(host, port, key, opts)

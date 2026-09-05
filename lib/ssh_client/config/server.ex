@@ -46,7 +46,8 @@ defmodule SSHClient.Config.Server do
         Map.get(attrs, "ProxyJump") || Map.get(attrs, "proxy_jump") || Map.get(attrs, "proxyjump")
 
       identity_file =
-        Map.get(attrs, "identity_file") || Map.get(attrs, "IdentityFile") || Map.get(attrs, "identityfile")
+        Map.get(attrs, "identity_file") || Map.get(attrs, "IdentityFile") ||
+          Map.get(attrs, "identityfile")
 
       auth_order = parse_auth_order(attrs)
 

@@ -128,7 +128,9 @@ defmodule SSHClient.SSHTest do
       assert SSH.plain_language_error(:econnrefused) =~ "Connection refused"
       assert SSH.plain_language_error(:ehostunreach) =~ "Host unreachable"
       assert SSH.plain_language_error({:auth_failed, "bad key"}) =~ "Authentication rejected"
-      assert SSH.plain_language_error({:host_key_changed, "fingerprint"}) =~ "Host key has changed"
+
+      assert SSH.plain_language_error({:host_key_changed, "fingerprint"}) =~
+               "Host key has changed"
     end
   end
 end
