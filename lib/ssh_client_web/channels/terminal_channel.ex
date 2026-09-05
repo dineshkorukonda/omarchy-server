@@ -9,103 +9,73 @@ defmodule SSHClientWeb.TerminalChannel do
   - Outgoing `"pty:output"`: Raw bytes from remote shell → xterm.js
   """
 
+  use Phoenix.Channel
+
   alias SSHClient.SSH.PTYSession
-
-  defstruct [
-    :session_pid,
-    :server_id,
-    cols: 80,
-    rows: 24
-  ]
-
-  @doc """
-  Handles client join request to topic `"terminal:" <> server_id`.
-  """
-  def join(topic, payload, socket_state \\ %{})
-
-  def join("terminal:" <> server_id, payload, socket_state) do
-    cols = Map.get(payload, "cols", 80)
-    rows = Map.get(payload, "rows", 24)
-
-    state = %__MODULE__{
-      server_id: server_id,
-      cols: cols,
-      rows: rows
-    }
-
-    {:ok, %{status: "connected", server_id: server_id}, Map.merge(socket_state, %{terminal: state})}
-  end
-
-  def join(_other, _payload, _socket_state) do
-    {:error, %{reason: "unauthorized"}}
-  end
 
   @bracketed_paste_start "\e[200~"
   @bracketed_paste_end "\e[201~"
 
+  @impl true
+  def join("terminal:" <> server_id, payload, socket) do
+    cols = Map.get(payload, "cols", 80)
+    rows = Map.get(payload, "rows", 24)
+
+    socket =
+      socket
+      |> assign(:server_id, server_id)
+      |> assign(:session_pid, nil)
+      |> assign(:cols, cols)
+      |> assign(:rows, rows)
+
+    {:ok, %{status: "connected", server_id: server_id}, socket}
+  end
+
+  def join(_other, _payload, _socket) do
+    {:error, %{reason: "unauthorized"}}
+  end
+
+  @impl true
+  def handle_in("pty:input", %{"data" => data, "bracketed" => true}, socket)
+      when is_binary(data) do
+    wrapped = @bracketed_paste_start <> data <> @bracketed_paste_end
+    handle_in("pty:input", %{"data" => wrapped}, socket)
+  end
+
+  def handle_in("pty:paste", %{"data" => data}, socket) when is_binary(data) do
+    wrapped = @bracketed_paste_start <> data <> @bracketed_paste_end
+    handle_in("pty:input", %{"data" => wrapped}, socket)
+  end
+
+  def handle_in("pty:input", %{"data" => data}, socket) when is_binary(data) do
+    pid = socket.assigns.session_pid
+
+    if pid && Process.alive?(pid) do
+      PTYSession.send_input(pid, data)
+    end
+
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("pty:resize", %{"cols" => cols, "rows" => rows}, socket)
+      when is_integer(cols) and is_integer(rows) do
+    pid = socket.assigns.session_pid
+
+    if pid && Process.alive?(pid) do
+      PTYSession.resize(pid, cols, rows)
+    end
+
+    {:reply, :ok, assign(socket, cols: cols, rows: rows)}
+  end
+
+  def handle_in(_event, _payload, socket) do
+    {:reply, {:error, %{reason: "unknown_event"}}, socket}
+  end
+
   @doc """
-  Wraps multi-line or paste content in ANSI bracketed paste escape sequences
-  (\e[200~ ... \e[201~) so the remote shell interprets it as a single chunk
-  rather than executing line by line.
+  Wraps multi-line or paste content in ANSI bracketed paste escape sequences.
   """
   def wrap_bracketed_paste(text) when is_binary(text) do
     @bracketed_paste_start <> text <> @bracketed_paste_end
-  end
-
-  @doc """
-  Handles client events from xterm.js.
-  """
-  def handle_in("pty:input", %{"data" => data, "bracketed" => true}, socket_state)
-      when is_binary(data) do
-    wrapped = wrap_bracketed_paste(data)
-    handle_in("pty:input", %{"data" => wrapped}, socket_state)
-  end
-
-  def handle_in("pty:paste", %{"data" => data}, socket_state) when is_binary(data) do
-    wrapped = wrap_bracketed_paste(data)
-    handle_in("pty:input", %{"data" => wrapped}, socket_state)
-  end
-
-  def handle_in("pty:input", %{"data" => data}, socket_state) when is_binary(data) do
-    terminal = Map.get(socket_state, :terminal)
-
-    if terminal && terminal.session_pid && Process.alive?(terminal.session_pid) do
-      PTYSession.send_input(terminal.session_pid, data)
-    end
-
-    {:reply, :ok, socket_state}
-  end
-
-  def handle_in("pty:resize", %{"cols" => cols, "rows" => rows}, socket_state)
-      when is_integer(cols) and is_integer(rows) do
-    terminal = Map.get(socket_state, :terminal)
-
-    if terminal && terminal.session_pid && Process.alive?(terminal.session_pid) do
-      PTYSession.resize(terminal.session_pid, cols, rows)
-    end
-
-    new_terminal =
-      if terminal do
-        %{terminal | cols: cols, rows: rows}
-      else
-        %__MODULE__{cols: cols, rows: rows}
-      end
-
-    {:reply, :ok, Map.put(socket_state, :terminal, new_terminal)}
-  end
-
-  def handle_in(_event, _payload, socket_state) do
-    {:reply, {:error, %{reason: "unknown_event"}}, socket_state}
-  end
-
-  @doc """
-  Handles output messages from PTYSession and formats them for the channel push.
-  """
-  def handle_pty_data(data) when is_binary(data) do
-    {:push, "pty:output", %{data: data}}
-  end
-
-  def handle_pty_eof do
-    {:push, "pty:closed", %{reason: "eof"}}
   end
 end

@@ -6,6 +6,7 @@ defmodule SSHClient.MixProject do
       app: :ssh_client,
       version: "0.0.1",
       elixir: "~> 1.18 or ~> 1.19 or ~> 1.20",
+      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       releases: [
@@ -25,10 +26,20 @@ defmodule SSHClient.MixProject do
     ]
   end
 
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
+
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:yaml_elixir, "~> 2.12"}
+      {:yaml_elixir, "~> 2.12"},
+      {:phoenix, "~> 1.7"},
+      {:phoenix_live_view, "~> 1.0"},
+      {:phoenix_html, "~> 4.0"},
+      {:bandit, "~> 1.5"},
+      {:jason, "~> 1.4"},
+      {:plug, "~> 1.16"},
+      {:floki, ">= 0.30.0", only: :test}
     ]
   end
 end

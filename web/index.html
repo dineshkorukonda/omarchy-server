@@ -10,7 +10,7 @@
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Google Fonts: Poppins & JetBrains Mono -->
+  <!-- Poppins & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -23,13 +23,6 @@
           fontFamily: {
             sans: ['Poppins', 'sans-serif'],
             mono: ['JetBrains Mono', 'monospace']
-          },
-          colors: {
-            brand: {
-              red: '#dc2626',
-              lightred: '#ef4444',
-              darkred: '#991b1b'
-            }
           }
         }
       }
@@ -37,18 +30,38 @@
   </script>
 
   <style>
-    body {
-      font-family: 'Poppins', sans-serif;
-      background-color: #050505;
-      color: #e5e5e5;
+    body { font-family: 'Poppins', sans-serif; background-color: #050505; color: #e5e5e5; }
+    code, pre, .font-mono { font-family: 'JetBrains Mono', monospace; }
+    ::selection { background-color: #dc2626; color: #fff; }
+
+    .cmd-block { position: relative; }
+    .cmd-block pre {
+      background: #0c0c0c;
+      border: 1px solid #1f1f1f;
+      border-radius: 8px;
+      padding: 14px 48px 14px 16px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #d4d4d4;
+      overflow-x: auto;
+      white-space: pre;
     }
-    code, pre, .font-mono {
+    .cmd-block .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #1f1f1f;
+      border: 1px solid #2f2f2f;
+      color: #6b7280;
+      font-size: 11px;
       font-family: 'JetBrains Mono', monospace;
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: color .15s, border-color .15s;
     }
-    ::selection {
-      background-color: #dc2626;
-      color: #ffffff;
-    }
+    .cmd-block .copy-btn:hover { color: #d4d4d4; border-color: #4b5563; }
+    .cmd-block .copy-btn.copied { color: #22c55e; border-color: #22c55e; }
   </style>
 </head>
 <body class="min-h-screen bg-[#050505] text-neutral-200 flex flex-col antialiased">
@@ -58,28 +71,29 @@
     <div class="navbar max-w-5xl mx-auto px-6 h-16">
       <div class="flex-1">
         <a href="./" class="text-base font-bold tracking-tight text-white flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-red-600"></span>
-          <span>ssh-client</span>
-          <span class="font-mono text-[10px] text-neutral-400 border border-neutral-800 px-1.5 py-0.5 rounded ml-1">v0.0.1</span>
+          <span class="w-2 h-2 rounded-full bg-red-600"></span>
+          ssh-client
+          <span class="font-mono text-[10px] text-neutral-500 border border-neutral-800 px-1.5 py-0.5 rounded ml-1">v0.0.1</span>
         </a>
       </div>
-      <div class="flex-none gap-2 font-medium text-xs">
-        <a href="./" class="btn btn-ghost btn-sm text-white hover:text-red-500">Overview</a>
+      <div class="flex-none gap-1 font-medium text-xs">
+        <a href="./" class="btn btn-ghost btn-sm text-white">Overview</a>
         <a href="install/" class="btn btn-ghost btn-sm text-neutral-400 hover:text-white">Install & FAQs</a>
         <a href="changelog/" class="btn btn-ghost btn-sm text-neutral-400 hover:text-white">Changelog</a>
-        <a href="https://github.com/dineshkorukonda/ssh-client" target="_blank" rel="noreferrer" class="btn btn-sm bg-neutral-900 border border-neutral-700 text-white hover:border-red-600 hover:bg-neutral-800 ml-2">GitHub ↗</a>
+        <a href="https://github.com/dineshkorukonda/ssh-client" target="_blank" rel="noreferrer"
+           class="btn btn-sm bg-neutral-900 border border-neutral-700 text-white hover:border-red-600 hover:bg-neutral-800 ml-2">GitHub ↗</a>
       </div>
     </div>
   </header>
 
   <main class="flex-grow max-w-5xl mx-auto w-full px-6 py-14 space-y-16">
 
-    <!-- Hero / Headline -->
+    <!-- Hero -->
     <section class="space-y-6 pt-4">
-      <div class="flex items-center gap-2 font-mono text-xs text-neutral-400 uppercase tracking-widest">
+      <div class="flex items-center gap-2 font-mono text-xs text-neutral-500 uppercase tracking-widest">
         <span>Desktop Client</span>
         <span class="text-red-600">/</span>
-        <span class="text-red-500 font-semibold">Windows & Linux</span>
+        <span class="text-red-500 font-semibold">Windows &amp; Linux</span>
         <span class="text-red-600">/</span>
         <span>Offline-First</span>
       </div>
@@ -99,65 +113,73 @@
         <a href="changelog/" class="btn btn-sm bg-transparent border border-neutral-700 text-neutral-200 hover:border-white hover:bg-neutral-900 px-5 font-medium">
           View Changelog
         </a>
-        <a href="https://github.com/dineshkorukonda/ssh-client/releases/tag/v0.0.1" target="_blank" rel="noreferrer" class="btn btn-sm btn-ghost text-neutral-400 hover:text-red-400 font-mono">
+        <a href="https://github.com/dineshkorukonda/ssh-client/releases/tag/v0.0.1" target="_blank" rel="noreferrer"
+           class="btn btn-sm btn-ghost text-neutral-400 hover:text-red-400 font-mono">
           GitHub Release v0.0.1 ↗
         </a>
       </div>
     </section>
 
-    <!-- Terminal & Telemetry Preview -->
-    <section class="border border-neutral-800 bg-[#0c0c0c] rounded-lg overflow-hidden shadow-2xl">
-      <div class="flex items-center justify-between border-b border-neutral-800 px-4 py-2.5 bg-[#121212] font-mono text-xs text-neutral-400">
-        <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-red-600"></span>
-          <span class="w-2.5 h-2.5 rounded-full bg-neutral-700"></span>
-          <span class="w-2.5 h-2.5 rounded-full bg-neutral-700"></span>
-          <span class="ml-2 text-neutral-300">target: cluster-primary (10.240.0.12:22)</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-          <span class="text-neutral-300">active (publickey: ed25519)</span>
-        </div>
+    <!-- Terminal demo (plain code block, no macOS dots) -->
+    <section class="space-y-3">
+      <div class="flex items-center gap-2 border-b border-neutral-800 pb-3">
+        <h2 class="font-mono text-xs font-bold uppercase tracking-wider text-neutral-500">Session Preview</h2>
       </div>
 
-      <div class="p-6 font-mono text-xs leading-relaxed space-y-4 overflow-x-auto text-neutral-300">
-        <div class="space-y-1 text-neutral-400">
-          <p><span class="text-red-500">$</span> ssh-client connect cluster-primary</p>
-          <p class="text-neutral-400">[keychain] Retrieved key credentials from Windows Credential Manager (id_ed25519)</p>
-          <p class="text-neutral-400">[hostkey] Verified server fingerprint SHA256:4aK9W1Fm8Dq7...</p>
-          <p class="text-white font-semibold pt-1">Linux cluster-primary 6.8.0-45-generic x86_64 SMP</p>
-        </div>
+      <div class="cmd-block">
+        <pre><span class="text-red-500">$</span> ssh-client connect cluster-primary
+[keychain] Retrieved key credentials from Windows Credential Manager (id_ed25519)
+[hostkey]  Verified server fingerprint SHA256:4aK9W1Fm8Dq7...
+Linux cluster-primary 6.8.0-45-generic x86_64 SMP
 
-        <!-- Metric Grid -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 py-3 px-4 bg-[#141414] border border-neutral-800 rounded">
-          <div>
-            <div class="text-[10px] text-neutral-500 uppercase tracking-wider font-mono">CPU Utilization</div>
-            <div class="text-sm font-bold text-white">12.8% <span class="text-[10px] font-normal text-neutral-500 font-mono">8 cores</span></div>
-          </div>
-          <div>
-            <div class="text-[10px] text-neutral-500 uppercase tracking-wider font-mono">Memory Allocated</div>
-            <div class="text-sm font-bold text-white">4.1 GB <span class="text-[10px] font-normal text-neutral-500 font-mono">/ 32 GB</span></div>
-          </div>
-          <div>
-            <div class="text-[10px] text-neutral-500 uppercase tracking-wider font-mono">Disk Storage</div>
-            <div class="text-sm font-bold text-white">38% <span class="text-[10px] font-normal text-neutral-500 font-mono">nvme0n1</span></div>
-          </div>
-          <div>
-            <div class="text-[10px] text-neutral-500 uppercase tracking-wider font-mono">System Load</div>
-            <div class="text-sm font-bold text-white">0.24 <span class="text-[10px] font-normal text-neutral-500 font-mono">0.19 0.15</span></div>
-          </div>
-        </div>
+  CPU   12.8%   8 cores        MEM   4.1 GB / 32 GB
+  DISK  38%     nvme0n1        LOAD  0.24  0.19  0.15
 
-        <!-- Command simulation -->
-        <div class="space-y-1">
-          <p class="text-neutral-400"><span class="text-red-500">user@cluster-primary:~$</span> systemctl status docker --no-pager</p>
-          <p class="text-neutral-400">Active: active (running) since Thu 2026-09-03 04:12:00 UTC; 2 days ago</p>
-          <p class="text-neutral-400"><span class="text-red-500">user@cluster-primary:~$</span> <span class="inline-block w-2 h-4 bg-red-600 align-middle"></span></p>
-        </div>
+<span class="text-zinc-500">user@cluster-primary:~$</span> systemctl status docker --no-pager
+Active: active (running) since Thu 2026-09-03 04:12:00 UTC; 2 days ago
+<span class="text-zinc-500">user@cluster-primary:~$</span> <span class="inline-block w-1.5 h-3.5 bg-red-600 align-middle animate-pulse"></span></pre>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
       </div>
     </section>
 
-    <!-- Core Architecture Pillars -->
+    <!-- Quick start -->
+    <section class="space-y-6">
+      <div class="border-b border-neutral-800 pb-3">
+        <h2 class="font-mono text-xs font-bold uppercase tracking-wider text-red-500">Quick Start</h2>
+        <p class="text-xl font-bold text-white mt-1">Get running in under two minutes</p>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <p class="text-sm text-neutral-400 mb-2">1. Download and run the Windows installer:</p>
+          <div class="cmd-block">
+            <pre>ssh-client-setup-v0.0.1-windows-x64.exe</pre>
+            <button class="copy-btn" onclick="copyCode(this)">copy</button>
+          </div>
+        </div>
+
+        <div>
+          <p class="text-sm text-neutral-400 mb-2">2. The app opens your browser to the GUI automatically. Or navigate to:</p>
+          <div class="cmd-block">
+            <pre>http://localhost:4000</pre>
+            <button class="copy-btn" onclick="copyCode(this)">copy</button>
+          </div>
+        </div>
+
+        <div>
+          <p class="text-sm text-neutral-400 mb-2">3. On Linux, extract the tarball and start:</p>
+          <div class="cmd-block">
+            <pre>tar -xzf ssh-client-linux-x64.tar.gz -C ~/.local/ssh-client
+~/.local/ssh-client/bin/ssh_client start</pre>
+            <button class="copy-btn" onclick="copyCode(this)">copy</button>
+          </div>
+        </div>
+      </div>
+
+      <p class="text-xs text-neutral-600">Full installation docs, prerequisites, and FAQs: <a href="install/" class="text-red-500 hover:text-red-400">install guide →</a></p>
+    </section>
+
+    <!-- Architecture pillars -->
     <section class="space-y-8">
       <div class="border-b border-neutral-800 pb-3">
         <h2 class="font-mono text-xs font-bold uppercase tracking-wider text-red-500">Architecture Invariants</h2>
@@ -191,7 +213,7 @@
       </div>
     </section>
 
-    <!-- Feature Table Matrix -->
+    <!-- Technical specs table -->
     <section class="space-y-6">
       <div class="border-b border-neutral-800 pb-3">
         <h2 class="font-mono text-xs font-bold uppercase tracking-wider text-red-500">Technical Specifications</h2>
@@ -229,9 +251,9 @@
               <td class="py-3 px-4 text-neutral-300">Linux remote targets</td>
             </tr>
             <tr>
-              <td class="py-3 px-4 font-semibold text-white">TUI Fallback</td>
-              <td class="py-3 px-4 text-neutral-400">Native ssh-client-tui CLI script adapted for Windows Terminal and Linux VT consoles</td>
-              <td class="py-3 px-4 text-neutral-300">Windows Terminal, Linux VT</td>
+              <td class="py-3 px-4 font-semibold text-white">GUI</td>
+              <td class="py-3 px-4 text-neutral-400">Phoenix LiveView served at localhost:4000 — browser-based, no Electron, no extra runtime</td>
+              <td class="py-3 px-4 text-neutral-300">Windows 10/11, Linux x64</td>
             </tr>
           </tbody>
         </table>
@@ -242,14 +264,16 @@
     <section class="border border-neutral-800 bg-[#0c0c0c] p-8 rounded-lg space-y-4">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 class="text-lg font-bold text-white">Download Standalone Releases</h3>
-          <p class="text-xs text-neutral-400 font-mono mt-1">Precompiled bundles for Windows x64 and Linux x64 (v0.0.1).</p>
+          <h3 class="text-lg font-bold text-white">Download v0.0.1</h3>
+          <p class="text-xs text-neutral-500 font-mono mt-1">Pre-release. Precompiled for Windows x64 and Linux x64.</p>
         </div>
         <div class="flex gap-3 text-xs font-semibold">
-          <a href="https://github.com/dineshkorukonda/ssh-client/releases/download/v0.0.1/ssh-client-windows-x64.zip" class="btn btn-sm bg-red-600 hover:bg-red-700 border-none text-white font-mono">
-            Windows (.zip)
+          <a href="https://github.com/dineshkorukonda/ssh-client/releases/download/v0.0.1/ssh-client-setup-v0.0.1-windows-x64.exe"
+             class="btn btn-sm bg-red-600 hover:bg-red-700 border-none text-white font-mono">
+            Windows (.exe)
           </a>
-          <a href="https://github.com/dineshkorukonda/ssh-client/releases/download/v0.0.1/ssh-client-linux-x64.tar.gz" class="btn btn-sm bg-neutral-900 border border-neutral-700 hover:border-red-600 text-white font-mono">
+          <a href="https://github.com/dineshkorukonda/ssh-client/releases/download/v0.0.1/ssh-client-linux-x64.tar.gz"
+             class="btn btn-sm bg-neutral-900 border border-neutral-700 hover:border-red-600 text-white font-mono">
             Linux (.tar.gz)
           </a>
         </div>
@@ -259,16 +283,27 @@
   </main>
 
   <!-- Footer -->
-  <footer class="border-t border-neutral-800 bg-[#050505] py-10 mt-16 text-xs text-neutral-500 font-mono">
+  <footer class="border-t border-neutral-800 bg-[#050505] py-10 mt-16 text-xs text-neutral-600 font-mono">
     <div class="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-      <p>ssh-client &bull; MIT License &bull; Offline & Zero Telemetry</p>
+      <p>ssh-client &bull; MIT License &bull; Offline &amp; Zero Telemetry</p>
       <div class="flex gap-6">
         <a href="install/" class="hover:text-red-500 transition-colors">Install & FAQs</a>
         <a href="changelog/" class="hover:text-red-500 transition-colors">Changelog</a>
-        <a href="https://github.com/dineshkorukonda/ssh-client" target="_blank" rel="noreferrer" class="hover:text-white transition-colors">GitHub Repository</a>
+        <a href="https://github.com/dineshkorukonda/ssh-client" target="_blank" rel="noreferrer" class="hover:text-white transition-colors">GitHub</a>
       </div>
     </div>
   </footer>
 
+  <script>
+    function copyCode(btn) {
+      const pre = btn.previousElementSibling;
+      const text = pre.innerText.replace(/\n?$/, '');
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 1800);
+      });
+    }
+  </script>
 </body>
 </html>

@@ -1,288 +1,430 @@
 defmodule SSHClientWeb.HostLive do
   @moduledoc """
-  Phoenix LiveView component rendering the host list and live status UI,
-  achieving parity with the original Omarchy QML panel.
+  Main host list LiveView — shows all registered SSH servers with live status,
+  CPU/RAM/disk metrics, and one-click terminal launch.
   """
+
+  use Phoenix.LiveView, layout: {SSHClientWeb.Layouts, :app}
 
   alias SSHClient.ServerManager
   alias SSHClient.ServerWorker
 
-  @doc """
-  Returns the initial state for the host list view.
-  """
-  def initial_state do
-    servers = list_servers()
+  @refresh_interval 5_000
 
-    %{
-      servers: servers,
-      selected_server: List.first(servers),
-      filter: "",
-      add_server_modal: false,
-      loading: false,
-      error: nil
-    }
+  # ---------------------------------------------------------------------------
+  # Mount
+  # ---------------------------------------------------------------------------
+
+  @impl true
+  def mount(_params, _session, socket) do
+    if connected?(socket) do
+      :timer.send_interval(@refresh_interval, :refresh)
+    end
+
+    socket =
+      socket
+      |> assign(:page_title, "ssh-client")
+      |> assign(:filter, "")
+      |> assign(:add_modal, false)
+      |> assign(:new_name, "")
+      |> assign(:new_host, "")
+      |> assign(:new_user, "")
+      |> assign(:new_port, "22")
+      |> assign(:error, nil)
+      |> load_servers()
+
+    {:ok, socket}
   end
 
-  @doc """
-  Fetches and formats the list of all registered servers and their live state.
-  """
-  def list_servers do
+  # ---------------------------------------------------------------------------
+  # Events
+  # ---------------------------------------------------------------------------
+
+  @impl true
+  def handle_event("search", %{"value" => q}, socket) do
+    {:noreply, assign(socket, :filter, q)}
+  end
+
+  def handle_event("poll_now", %{"id" => id}, socket) do
+    case ServerWorker.whereis(id) do
+      pid when is_pid(pid) -> ServerWorker.poll_now(pid)
+      _ -> :ok
+    end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("poll_all", _params, socket) do
+    try do
+      socket.assigns.servers
+      |> Enum.each(fn s ->
+        case ServerWorker.whereis(s.id) do
+          pid when is_pid(pid) -> ServerWorker.poll_now(pid)
+          _ -> :ok
+        end
+      end)
+    rescue
+      _ -> :ok
+    end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("connect", %{"id" => id}, socket) do
+    {:noreply, push_navigate(socket, to: "/terminal/#{id}")}
+  end
+
+  def handle_event("open_add_modal", _params, socket) do
+    {:noreply, assign(socket, :add_modal, true)}
+  end
+
+  def handle_event("close_add_modal", _params, socket) do
+    {:noreply, assign(socket, add_modal: false, error: nil)}
+  end
+
+  def handle_event("add_server", params, socket) do
+    name = String.trim(params["name"] || "")
+    host = String.trim(params["host"] || "")
+    user = String.trim(params["user"] || "")
+    port = String.to_integer(params["port"] || "22")
+
+    if name == "" or host == "" or user == "" do
+      {:noreply, assign(socket, :error, "Name, host, and user are required.")}
+    else
+      config = %{
+        id: String.downcase(String.replace(name, ~r/\s+/, "-")),
+        name: name,
+        host: host,
+        user: user,
+        port: port
+      }
+
+      case ServerManager.add_server(config) do
+        :ok ->
+          {:noreply, socket |> assign(add_modal: false, error: nil) |> load_servers()}
+
+        {:error, reason} ->
+          {:noreply, assign(socket, :error, inspect(reason))}
+      end
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Info
+  # ---------------------------------------------------------------------------
+
+  @impl true
+  def handle_info(:refresh, socket) do
+    {:noreply, load_servers(socket)}
+  end
+
+  # ---------------------------------------------------------------------------
+  # Render
+  # ---------------------------------------------------------------------------
+
+  @impl true
+  def render(assigns) do
+    filtered = filter_servers(assigns.servers, assigns.filter)
+    assigns = assign(assigns, :filtered_servers, filtered)
+
+    ~H"""
+    <div class="flex h-full min-h-screen bg-[#050505]">
+      <!-- Sidebar -->
+      <aside class="w-56 bg-[#0a0a0a] border-r border-[#1f1f1f] flex flex-col shrink-0">
+        <div class="px-5 py-5 border-b border-[#1f1f1f]">
+          <span class="text-white font-semibold text-sm tracking-tight">ssh-client</span>
+          <span class="block text-[11px] text-zinc-600 font-mono mt-0.5">v0.0.1</span>
+        </div>
+        <nav class="flex-1 px-3 py-4 space-y-0.5">
+          <a href="/" class="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-blue-600/10 text-blue-400 text-sm font-medium">
+            Hosts
+          </a>
+          <a href="#" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-white/5 text-sm font-medium transition-colors">
+            Settings
+          </a>
+        </nav>
+        <div class="px-5 py-4 border-t border-[#1f1f1f]">
+          <span class="text-[11px] text-zinc-700">
+            <%= length(@servers) %> host<%= if length(@servers) != 1, do: "s" %>
+          </span>
+        </div>
+      </aside>
+
+      <!-- Main content -->
+      <div class="flex-1 flex flex-col min-w-0">
+        <!-- Topbar -->
+        <header class="h-14 flex items-center justify-between px-6 border-b border-[#1f1f1f] bg-[#050505] shrink-0">
+          <div class="flex items-center gap-3">
+            <h1 class="text-sm font-semibold text-white tracking-tight">Hosts</h1>
+            <span class="text-[11px] text-zinc-600 font-mono"><%= length(@filtered_servers) %> shown</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <input
+              type="text"
+              value={@filter}
+              placeholder="Search hosts..."
+              phx-keyup="search"
+              phx-value-value={@filter}
+              class="h-8 px-3 bg-[#111] border border-[#1f1f1f] rounded-lg text-sm text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-blue-500/60 w-48 font-mono"
+            />
+            <button
+              phx-click="poll_all"
+              class="h-8 px-3 bg-[#111] border border-[#1f1f1f] hover:border-zinc-600 text-zinc-400 text-sm rounded-lg transition-colors"
+            >
+              Refresh
+            </button>
+            <button
+              phx-click="open_add_modal"
+              class="h-8 px-4 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              + Add Host
+            </button>
+          </div>
+        </header>
+
+        <!-- Host table -->
+        <div class="flex-1 overflow-auto">
+          <%= if @filtered_servers == [] do %>
+            <div class="flex flex-col items-center justify-center h-64 gap-3">
+              <span class="text-zinc-600 text-sm">No hosts found</span>
+              <button phx-click="open_add_modal" class="text-blue-500 hover:text-blue-400 text-sm transition-colors">
+                Add your first host
+              </button>
+            </div>
+          <% else %>
+            <table class="w-full text-left border-collapse text-sm">
+              <thead>
+                <tr class="border-b border-[#1f1f1f]">
+                  <th class="px-6 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider">Name</th>
+                  <th class="px-6 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider">Address</th>
+                  <th class="px-6 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider">Status</th>
+                  <th class="px-6 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider">CPU</th>
+                  <th class="px-6 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider">RAM</th>
+                  <th class="px-6 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider">Disk</th>
+                  <th class="px-6 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <%= for server <- @filtered_servers do %>
+                  <tr class="border-b border-[#0f0f0f] hover:bg-white/[0.015] group transition-colors">
+                    <td class="px-6 py-3.5 font-medium text-white">
+                      <%= server.name %>
+                    </td>
+                    <td class="px-6 py-3.5 text-zinc-500 font-mono text-[13px]">
+                      <%= server.host %>
+                    </td>
+                    <td class="px-6 py-3.5">
+                      <span class={["inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium font-mono tracking-wide", badge_class(server.status)]}>
+                        <%= server.status %>
+                      </span>
+                    </td>
+                    <td class="px-6 py-3.5">
+                      <span class={["text-[13px] font-mono", metric_color(server.cpu_percent)]}>
+                        <%= format_pct(server.cpu_percent) %>
+                      </span>
+                    </td>
+                    <td class="px-6 py-3.5">
+                      <span class={["text-[13px] font-mono", metric_color(server.ram_percent)]}>
+                        <%= format_pct(server.ram_percent) %>
+                      </span>
+                    </td>
+                    <td class="px-6 py-3.5">
+                      <span class={["text-[13px] font-mono", metric_color(server.disk_percent)]}>
+                        <%= format_pct(server.disk_percent) %>
+                      </span>
+                    </td>
+                    <td class="px-6 py-3.5 text-right">
+                      <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          phx-click="poll_now"
+                          phx-value-id={server.id}
+                          class="px-2.5 py-1 bg-[#111] border border-[#1f1f1f] hover:border-zinc-600 text-zinc-400 text-xs rounded-md transition-colors"
+                        >
+                          Refresh
+                        </button>
+                        <button
+                          phx-click="connect"
+                          phx-value-id={server.id}
+                          class="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-md transition-colors"
+                        >
+                          Terminal
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Host Modal -->
+    <%= if @add_modal do %>
+      <div class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+        <div class="bg-[#0a0a0a] border border-[#1f1f1f] rounded-2xl w-full max-w-md p-6 shadow-2xl">
+          <div class="flex items-center justify-between mb-5">
+            <h2 class="text-sm font-semibold text-white">Add SSH Host</h2>
+            <button phx-click="close_add_modal" class="text-zinc-600 hover:text-zinc-400 transition-colors text-lg leading-none">&times;</button>
+          </div>
+
+          <%= if @error do %>
+            <div class="mb-4 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs font-mono">
+              <%= @error %>
+            </div>
+          <% end %>
+
+          <form phx-submit="add_server" class="space-y-3">
+            <div>
+              <label class="block text-[11px] text-zinc-600 uppercase tracking-wider mb-1.5">Name</label>
+              <input
+                type="text"
+                name="name"
+                value={@new_name}
+                placeholder="Production Web"
+                class="w-full h-9 px-3 bg-[#111] border border-[#1f1f1f] focus:border-blue-500/60 rounded-lg text-sm text-zinc-300 placeholder-zinc-700 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label class="block text-[11px] text-zinc-600 uppercase tracking-wider mb-1.5">Host / IP</label>
+              <input
+                type="text"
+                name="host"
+                value={@new_host}
+                placeholder="192.168.1.10"
+                class="w-full h-9 px-3 bg-[#111] border border-[#1f1f1f] focus:border-blue-500/60 rounded-lg text-sm text-zinc-300 placeholder-zinc-700 focus:outline-none font-mono"
+              />
+            </div>
+            <div class="flex gap-3">
+              <div class="flex-1">
+                <label class="block text-[11px] text-zinc-600 uppercase tracking-wider mb-1.5">User</label>
+                <input
+                  type="text"
+                  name="user"
+                  value={@new_user}
+                  placeholder="ubuntu"
+                  class="w-full h-9 px-3 bg-[#111] border border-[#1f1f1f] focus:border-blue-500/60 rounded-lg text-sm text-zinc-300 placeholder-zinc-700 focus:outline-none font-mono"
+                />
+              </div>
+              <div class="w-24">
+                <label class="block text-[11px] text-zinc-600 uppercase tracking-wider mb-1.5">Port</label>
+                <input
+                  type="number"
+                  name="port"
+                  value={@new_port}
+                  placeholder="22"
+                  class="w-full h-9 px-3 bg-[#111] border border-[#1f1f1f] focus:border-blue-500/60 rounded-lg text-sm text-zinc-300 placeholder-zinc-700 focus:outline-none font-mono"
+                />
+              </div>
+            </div>
+            <div class="flex gap-2 pt-1">
+              <button
+                type="button"
+                phx-click="close_add_modal"
+                class="flex-1 h-9 border border-[#1f1f1f] hover:border-zinc-600 text-zinc-400 text-sm rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                class="flex-1 h-9 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                Add Host
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    <% end %>
+    """
+  end
+
+  # ---------------------------------------------------------------------------
+  # Private helpers
+  # ---------------------------------------------------------------------------
+
+  defp load_servers(socket) do
     servers =
       try do
         ServerManager.list_servers()
+        |> Enum.map(&format_server/1)
       rescue
         _ -> []
       catch
         :exit, _ -> []
       end
 
-    Enum.map(servers, &format_server/1)
+    assign(socket, :servers, servers)
   end
 
-  @doc """
-  Triggers a manual refresh/poll for a specific server or all servers.
-  """
-  def refresh_server(server_id) do
-    case ServerWorker.whereis(server_id) do
-      pid when is_pid(pid) ->
-        ServerWorker.poll_now(pid)
-
-      nil ->
-        {:error, :not_found}
-    end
-  end
-
-  def refresh_all do
-    workers =
-      try do
-        ServerManager.get_workers()
-      rescue
-        _ -> %{}
-      catch
-        :exit, _ -> %{}
-      end
-
-    Enum.each(workers, fn {_id, pid} ->
-      try do
-        ServerWorker.poll_now(pid)
-      rescue
-        _ -> :ok
-      catch
-        :exit, _ -> :ok
-      end
-    end)
-
-    :ok
-  end
-
-  @doc """
-  Selects a server by ID for viewing details.
-  """
-  def select_server(state, server_id) do
-    selected = Enum.find(state.servers, fn s -> s.id == server_id end)
-    %{state | selected_server: selected}
-  end
-
-  @doc """
-  Filters and ranks the server list based on a query string using fuzzy subsequence
-  and substring matching across name, host, id, and optional group/tags.
-  If group filter is provided, narrows down to that group first.
-  """
-  def filter_servers(servers, query, group_filter \\ nil) do
-    filtered_by_group =
-      case group_filter do
-        nil -> servers
-        "" -> servers
-        g -> Enum.filter(servers, fn s -> s[:group] == g or Map.get(s, "group") == g end)
-      end
-
-    case String.trim(to_string(query)) do
-      "" ->
-        filtered_by_group
-
-      q ->
-        q_down = String.downcase(q)
-
-        filtered_by_group
-        |> Enum.map(fn s -> {s, fuzzy_score(s, q_down)} end)
-        |> Enum.filter(fn {_s, score} -> score > 0 end)
-        |> Enum.sort_by(fn {_s, score} -> score end, :desc)
-        |> Enum.map(fn {s, _score} -> s end)
-    end
-  end
-
-  @doc """
-  Computes a fuzzy matching score between a server candidate and a query string.
-  Higher scores indicate stronger matches (exact prefix > substring > subsequence).
-  """
-  def fuzzy_score(server, query) when is_binary(query) do
-    target_str =
-      [server[:name], server[:host], server[:id], server[:group]]
-      |> Enum.reject(&is_nil/1)
-      |> Enum.map(&to_string/1)
-      |> Enum.map(&String.downcase/1)
-      |> Enum.join(" ")
-
-    words = String.split(target_str, ~r/\s+/)
-    word_initials = words |> Enum.map(&String.slice(&1, 0, 1)) |> Enum.join("")
-
-    cond do
-      target_str == query ->
-        1000
-
-      String.starts_with?(target_str, query) ->
-        500
-
-      Enum.any?(words, &String.starts_with?(&1, query)) ->
-        400
-
-      String.contains?(target_str, query) ->
-        300 + (100 - min(String.length(target_str), 100))
-
-      String.starts_with?(word_initials, query) ->
-        150
-
-      subsequence_match?(String.to_charlist(query), String.to_charlist(word_initials)) ->
-        100
-
-      # Check if query is an acronym/subsequence formed by word boundaries or parts
-      subsequence_match?(String.to_charlist(query), String.to_charlist(target_str)) and
-        (String.length(query) >= 3 or Enum.any?(words, fn w -> String.starts_with?(w, String.slice(query, 0, 1)) end)) ->
-        # Only accept 2-char subsequence if at least one word starts with the first char
-        # e.g. "db" in "Production Web Alpha" -> starts with p, w, a (no 'd' at word start, so rejected!)
-        # in "Database Master" -> starts with 'd'!
-        if Enum.any?(words, fn w -> String.starts_with?(w, String.slice(query, 0, 1)) end) do
-          80
-        else
-          0
-        end
-
-      true ->
-        0
-    end
-  end
-
-  defp subsequence_match?([], _target), do: true
-  defp subsequence_match?(_pattern, []), do: false
-
-  defp subsequence_match?([char | p_rest], [char | t_rest]) do
-    subsequence_match?(p_rest, t_rest)
-  end
-
-  defp subsequence_match?(pattern, [_ | t_rest]) do
-    subsequence_match?(pattern, t_rest)
-  end
-
-  @doc """
-  Formats server metrics and status into a display-ready structure.
-  """
-  def format_server(server) when is_map(server) do
+  defp format_server(server) when is_map(server) do
     status = normalize_status(server[:status])
     metrics = server[:metrics] || %{}
-    checks = server[:checks] || %{}
 
     %{
       id: to_string(server[:id]),
       name: to_string(server[:name] || server[:id]),
       host: to_string(server[:host] || ""),
       status: status,
-      status_badge_color: badge_color_for_status(status),
-      cpu_percent: Map.get(metrics, :cpu_percent, Map.get(metrics, "cpu_percent", 0.0)),
-      ram_percent: Map.get(metrics, :ram_percent, Map.get(metrics, "ram_percent", 0.0)),
-      disk_percent: Map.get(metrics, :disk_percent, Map.get(metrics, "disk_percent", 0.0)),
-      uptime: Map.get(metrics, :uptime, Map.get(metrics, "uptime", "unknown")),
-      checks: checks,
-      init_system: server[:init_system],
-      last_error: server[:last_error],
-      updated_at: server[:updated_at]
+      cpu_percent: Map.get(metrics, :cpu_percent, Map.get(metrics, "cpu_percent", 0.0)) |> to_float(),
+      ram_percent: Map.get(metrics, :ram_percent, Map.get(metrics, "ram_percent", 0.0)) |> to_float(),
+      disk_percent: Map.get(metrics, :disk_percent, Map.get(metrics, "disk_percent", 0.0)) |> to_float()
     }
   end
 
-  @doc """
-  Renders the HTML structure for the host list view (LiveView template).
-  """
-  def render_html(assigns) do
-    servers = filter_servers(assigns.servers, assigns.filter)
-
-    server_rows =
-      Enum.map(servers, fn server ->
-        """
-        <tr class="host-row hover:bg-zinc-800/50 cursor-pointer" data-id="#{server.id}">
-          <td class="px-4 py-3 font-medium text-white">#{server.name}</td>
-          <td class="px-4 py-3 text-zinc-400 font-mono text-sm">#{server.host}</td>
-          <td class="px-4 py-3">
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium #{server.status_badge_color}">
-              #{server.status}
-            </span>
-          </td>
-          <td class="px-4 py-3 text-zinc-300 text-sm">#{server.cpu_percent}%</td>
-          <td class="px-4 py-3 text-zinc-300 text-sm">#{server.ram_percent}%</td>
-          <td class="px-4 py-3 text-zinc-300 text-sm">#{server.disk_percent}%</td>
-          <td class="px-4 py-3 text-right">
-            <button class="px-2 py-1 bg-zinc-700 hover:bg-zinc-600 text-white rounded text-xs" phx-click="poll_now" phx-value-id="#{server.id}">
-              Refresh
-            </button>
-            <button class="ml-2 px-2 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs" phx-click="connect" phx-value-id="#{server.id}">
-              Terminal
-            </button>
-          </td>
-        </tr>
-        """
-      end)
-      |> Enum.join("\n")
-
-    """
-    <div class="flex flex-col h-full bg-zinc-950 text-zinc-100 font-sans">
-      <!-- Header -->
-      <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-        <h1 class="text-lg font-semibold tracking-tight text-white">Hosts & Status</h1>
-        <div class="flex items-center gap-3">
-          <input
-            type="text"
-            placeholder="Search hosts..."
-            value="#{assigns.filter}"
-            class="px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded-md text-sm text-zinc-200 focus:outline-none focus:border-blue-500"
-            phx-keyup="search"
-          />
-          <button class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm rounded-md" phx-click="open_add_modal">
-            + Add Host
-          </button>
-          <button class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium text-sm rounded-md" phx-click="poll_all">
-            Refresh All
-          </button>
-        </div>
-      </div>
-
-      <!-- Main Table -->
-      <div class="flex-1 overflow-auto">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="border-b border-zinc-800 text-xs font-semibold text-zinc-400 uppercase tracking-wider bg-zinc-900/60">
-              <th class="px-4 py-3">Host Name</th>
-              <th class="px-4 py-3">Address</th>
-              <th class="px-4 py-3">Status</th>
-              <th class="px-4 py-3">CPU</th>
-              <th class="px-4 py-3">RAM</th>
-              <th class="px-4 py-3">Disk</th>
-              <th class="px-4 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-zinc-800/60">
-            #{server_rows}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    """
-  end
+  defp to_float(v) when is_float(v), do: v
+  defp to_float(v) when is_integer(v), do: v * 1.0
+  defp to_float(_), do: 0.0
 
   defp normalize_status(status) when is_atom(status), do: Atom.to_string(status)
   defp normalize_status(status) when is_binary(status), do: status
   defp normalize_status(_), do: "unknown"
 
-  defp badge_color_for_status("polling"), do: "bg-emerald-500/20 text-emerald-400"
-  defp badge_color_for_status("connecting"), do: "bg-blue-500/20 text-blue-400"
-  defp badge_color_for_status("degraded"), do: "bg-amber-500/20 text-amber-400"
-  defp badge_color_for_status("reconnecting"), do: "bg-purple-500/20 text-purple-400"
-  defp badge_color_for_status(_), do: "bg-zinc-500/20 text-zinc-400"
+  defp format_pct(v), do: "#{:erlang.float_to_binary(v, decimals: 1)}%"
+
+  defp badge_class("polling"), do: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+  defp badge_class("connecting"), do: "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+  defp badge_class("degraded"), do: "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+  defp badge_class("reconnecting"), do: "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+  defp badge_class(_), do: "bg-zinc-800 text-zinc-500 border border-zinc-700/50"
+
+  defp metric_color(v) when v >= 90, do: "text-red-400"
+  defp metric_color(v) when v >= 70, do: "text-amber-400"
+  defp metric_color(_), do: "text-zinc-400"
+
+  @doc "Fuzzy-filters and ranks servers by query string."
+  def filter_servers(servers, query) do
+    case String.trim(to_string(query)) do
+      "" ->
+        servers
+
+      q ->
+        q_down = String.downcase(q)
+
+        servers
+        |> Enum.map(fn s -> {s, fuzzy_score(s, q_down)} end)
+        |> Enum.filter(fn {_s, score} -> score > 0 end)
+        |> Enum.sort_by(fn {_s, score} -> score end, :desc)
+        |> Enum.map(fn {s, _} -> s end)
+    end
+  end
+
+  @doc "Computes fuzzy match score for a server against a query."
+  def fuzzy_score(server, query) when is_binary(query) do
+    fields =
+      [server[:name], server[:host], server[:id]]
+      |> Enum.reject(&is_nil/1)
+      |> Enum.map(&to_string/1)
+      |> Enum.map(&String.downcase/1)
+
+    target = Enum.join(fields, " ")
+
+    cond do
+      query in fields or target == query -> 1000
+      String.starts_with?(target, query) -> 500
+      String.contains?(target, query) -> 300
+      true -> 0
+    end
+  end
 end
