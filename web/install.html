@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Installation & FAQs — ssh-client</title>
+  <meta name="description" content="Comprehensive installation guides, configuration details, troubleshooting steps, and technical FAQs for ssh-client on Windows and Linux.">
+
+  <!-- daisyUI + Tailwind CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Typography: JetBrains Mono + Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+    }
+    code, pre, .font-mono {
+      font-family: var(--font-mono);
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-base-300 text-base-content flex flex-col antialiased selection:bg-amber-600/30 selection:text-neutral-100">
+
+  <!-- Header / Navigation -->
+  <header class="sticky top-0 z-50 border-b border-base-content/10 bg-base-300/90 backdrop-blur-md">
+    <div class="navbar max-w-5xl mx-auto px-6 h-16">
+      <div class="flex-1">
+        <a href="index.html" class="font-mono text-sm font-bold tracking-tight text-neutral-100 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+          <span>ssh-client</span>
+          <span class="badge badge-sm badge-neutral font-mono text-[10px] ml-1">v0.0.1</span>
+        </a>
+      </div>
+      <div class="flex-none gap-2 font-mono text-xs">
+        <a href="index.html" class="btn btn-ghost btn-sm text-neutral-400 hover:text-neutral-100">Overview</a>
+        <a href="install.html" class="btn btn-ghost btn-sm text-neutral-100">Install & FAQs</a>
+        <a href="changelog.html" class="btn btn-ghost btn-sm text-neutral-400 hover:text-neutral-100">Changelog</a>
+        <a href="https://github.com/dineshkorukonda/ssh-client" target="_blank" rel="noreferrer" class="btn btn-neutral btn-sm ml-2">GitHub ↗</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-grow max-w-5xl mx-auto w-full px-6 py-12 space-y-16">
+
+    <!-- Title / Kicker -->
+    <section class="space-y-4 pt-4 border-b border-base-content/10 pb-8">
+      <div class="font-mono text-xs text-amber-500 uppercase tracking-wider">Documentation</div>
+      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-100 font-mono">
+        Installation, Deployment & FAQs
+      </h1>
+      <p class="font-mono text-xs sm:text-sm text-neutral-400 max-w-2xl leading-relaxed">
+        Step-by-step operating instructions for Windows x64, Linux distributions, source builds, and deep architectural answers to frequently encountered edge cases.
+      </p>
+    </section>
+
+    <!-- OS Installation Guides -->
+    <section class="space-y-8">
+      <div class="border-b border-base-content/10 pb-3">
+        <h2 class="font-mono text-sm font-bold uppercase tracking-wider text-amber-500">Operating System Setup</h2>
+        <p class="text-xl font-bold text-neutral-100 mt-1">Prebuilt Standalone Releases</p>
+      </div>
+
+      <div class="space-y-8">
+        
+        <!-- Windows Setup -->
+        <div class="border border-base-content/10 bg-base-200 p-6 rounded-lg space-y-4">
+          <div class="flex items-baseline justify-between border-b border-base-content/10 pb-3">
+            <h3 class="font-mono text-base font-bold text-neutral-100">Windows (PowerShell 5.1+ / 7+)</h3>
+            <span class="badge badge-sm badge-neutral font-mono text-[10px]">Windows 10 / 11 64-bit</span>
+          </div>
+          <p class="text-xs text-neutral-400 leading-relaxed">
+            The Windows bundle is a fully self-contained release with the embedded Erlang 27 runtime. It does not require any prerequisite Elixir or Erlang installations, nor does it require OpenSSH-for-Windows.
+          </p>
+
+          <div class="mockup-code text-xs bg-base-300 text-neutral-300 border border-base-content/10">
+            <pre data-prefix="#"><code># 1. Download release archive (v0.0.1)</code></pre>
+            <pre data-prefix=">"><code>Invoke-WebRequest -Uri https://github.com/dineshkorukonda/ssh-client/releases/download/v0.0.1/ssh-client-windows-x64.zip -OutFile "$env:TEMP\ssh-client.zip"</code></pre>
+            <pre data-prefix="#"><code># 2. Extract to installation directory</code></pre>
+            <pre data-prefix=">"><code>Expand-Archive -Path "$env:TEMP\ssh-client.zip" -DestinationPath "$env:LOCALAPPDATA\Programs\ssh-client" -Force</code></pre>
+            <pre data-prefix="#"><code># 3. Launch desktop client</code></pre>
+            <pre data-prefix=">"><code>& "$env:LOCALAPPDATA\Programs\ssh-client\bin\ssh_client.bat" start</code></pre>
+          </div>
+
+          <div class="text-xs font-mono text-neutral-400 space-y-1">
+            <p><span class="text-neutral-200 font-semibold">Credential Storage:</span> Automatically utilizes Windows Credential Manager under the target name prefix <code class="text-neutral-300">ssh-client:host:&lt;hostname&gt;</code>.</p>
+            <p><span class="text-neutral-200 font-semibold">Config Location:</span> <code class="text-neutral-300">%APPDATA%\ssh-client\servers.json</code></p>
+          </div>
+        </div>
+
+        <!-- Linux Setup -->
+        <div class="border border-base-content/10 bg-base-200 p-6 rounded-lg space-y-4">
+          <div class="flex items-baseline justify-between border-b border-base-content/10 pb-3">
+            <h3 class="font-mono text-base font-bold text-neutral-100">Linux (x86_64, glibc 2.31+)</h3>
+            <span class="badge badge-sm badge-neutral font-mono text-[10px]">Ubuntu &bull; Debian &bull; Fedora &bull; Arch</span>
+          </div>
+          <p class="text-xs text-neutral-400 leading-relaxed">
+            Linux releases are distributed as a standalone tarball containing OTP release executables and WebKitGTK runtime wrappers.
+          </p>
+
+          <div class="mockup-code text-xs bg-base-300 text-neutral-300 border border-base-content/10">
+            <pre data-prefix="#"><code># 1. Download release tarball (v0.0.1)</code></pre>
+            <pre data-prefix="$"><code>curl -sSL -O https://github.com/dineshkorukonda/ssh-client/releases/download/v0.0.1/ssh-client-linux-x64.tar.gz</code></pre>
+            <pre data-prefix="#"><code># 2. Unpack into target destination</code></pre>
+            <pre data-prefix="$"><code>sudo mkdir -p /opt/ssh-client &amp;&amp; sudo tar -xzf ssh-client-linux-x64.tar.gz -C /opt/ssh-client</code></pre>
+            <pre data-prefix="#"><code># 3. Start the application daemon or desktop window</code></pre>
+            <pre data-prefix="$"><code>/opt/ssh-client/bin/ssh_client start</code></pre>
+          </div>
+
+          <div class="text-xs font-mono text-neutral-400 space-y-1">
+            <p><span class="text-neutral-200 font-semibold">Credential Storage:</span> Uses Freedesktop Secret Service via <code class="text-neutral-300">libsecret</code> (<code class="text-neutral-300">secret-tool</code>).</p>
+            <p><span class="text-neutral-200 font-semibold">Config Location:</span> <code class="text-neutral-300">~/.config/ssh-client/servers.json</code></p>
+          </div>
+        </div>
+
+        <!-- Build from Source -->
+        <div class="border border-base-content/10 bg-base-200 p-6 rounded-lg space-y-4">
+          <div class="flex items-baseline justify-between border-b border-base-content/10 pb-3">
+            <h3 class="font-mono text-base font-bold text-neutral-100">Building from Source</h3>
+            <span class="badge badge-sm badge-neutral font-mono text-[10px]">Elixir 1.18+ &bull; Erlang/OTP 27+</span>
+          </div>
+          <p class="text-xs text-neutral-400 leading-relaxed">
+            If you wish to compile or develop directly against the repository:
+          </p>
+
+          <div class="mockup-code text-xs bg-base-300 text-neutral-300 border border-base-content/10">
+            <pre data-prefix="$"><code>git clone https://github.com/dineshkorukonda/ssh-client.git</code></pre>
+            <pre data-prefix="$"><code>cd ssh-client</code></pre>
+            <pre data-prefix="$"><code>mix deps.get</code></pre>
+            <pre data-prefix="$"><code># Run interactive development session:</code></pre>
+            <pre data-prefix="$"><code>iex -S mix</code></pre>
+            <pre data-prefix="$"><code># Or produce a production release bundle:</code></pre>
+            <pre data-prefix="$"><code>MIX_ENV=prod mix release ssh_client</code></pre>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- In-Depth Technical FAQs / Troubleshooting -->
+    <section class="space-y-6">
+      <div class="border-b border-base-content/10 pb-3">
+        <h2 class="font-mono text-sm font-bold uppercase tracking-wider text-amber-500">Frequently Asked Questions & Troubleshooting</h2>
+        <p class="text-xl font-bold text-neutral-100 mt-1">Technical deep-dives into edge cases and architecture</p>
+      </div>
+
+      <div class="space-y-3 font-mono text-xs">
+
+        <!-- FAQ 1 -->
+        <div class="collapse collapse-arrow border border-base-content/10 bg-base-200">
+          <input type="checkbox" checked /> 
+          <div class="collapse-title font-semibold text-neutral-200 text-sm">
+            Does ssh-client require OpenSSH to be installed on my machine?
+          </div>
+          <div class="collapse-content text-neutral-400 leading-relaxed space-y-2">
+            <p>
+              No. Unlike most desktop terminal applications that simply spawn an external <code class="text-neutral-300">ssh.exe</code> subprocess in the background, <code class="text-neutral-300">ssh-client</code> uses Erlang/OTP's built-in <code class="text-neutral-300">:ssh</code> application directly.
+            </p>
+            <p>
+              This means all protocol negotiation, key exchange, encryption ciphers, and PTY channels occur in native BEAM processes. It operates identically on clean Windows installations without OpenSSH-for-Windows installed on your system PATH.
+            </p>
+          </div>
+        </div>
+
+        <!-- FAQ 2 -->
+        <div class="collapse collapse-arrow border border-base-content/10 bg-base-200">
+          <input type="checkbox" /> 
+          <div class="collapse-title font-semibold text-neutral-200 text-sm">
+            How does ssh-client handle private key passphrases without persisting them?
+          </div>
+          <div class="collapse-content text-neutral-400 leading-relaxed space-y-2">
+            <p>
+              When a password-protected identity key (e.g. <code class="text-neutral-300">id_ed25519</code>) is encountered, the client prompts for your passphrase once per active session.
+            </p>
+            <p>
+              The passphrase and decrypted key bytes are stored strictly in-memory via <code class="text-neutral-300">SSHClient.PassphraseCache</code> (a dedicated GenServer). Decrypted material is never written to disk, never cached in local configuration files, and automatically purged when the process tree terminates.
+            </p>
+          </div>
+        </div>
+
+        <!-- FAQ 3 -->
+        <div class="collapse collapse-arrow border border-base-content/10 bg-base-200">
+          <input type="checkbox" /> 
+          <div class="collapse-title font-semibold text-neutral-200 text-sm">
+            What happens if a remote host's public key fingerprint changes?
+          </div>
+          <div class="collapse-content text-neutral-400 leading-relaxed space-y-2">
+            <p>
+              <code class="text-neutral-300">ssh-client</code> enforces strict host key verification. If a host key does not match the cached record in <code class="text-neutral-300">known_hosts</code>, the connection is aborted immediately (reject-by-default).
+            </p>
+            <p>
+              A visual fingerprint diff (displaying algorithm, old SHA-256 fingerprint, and new fingerprint) is surfaced to the operator. The connection cannot proceed unless the user explicitly approves the host key change.
+            </p>
+          </div>
+        </div>
+
+        <!-- FAQ 4 -->
+        <div class="collapse collapse-arrow border border-base-content/10 bg-base-200">
+          <input type="checkbox" /> 
+          <div class="collapse-title font-semibold text-neutral-200 text-sm">
+            How is background CPU and network consumption kept low during monitoring?
+          </div>
+          <div class="collapse-content text-neutral-400 leading-relaxed space-y-2">
+            <p>
+              Many monitoring tools keep full interactive SSH shells open or poll high-frequency commands repeatedly. <code class="text-neutral-300">ssh-client</code> implements:
+            </p>
+            <ul class="list-disc list-inside space-y-1 text-neutral-300">
+              <li><strong>Non-interactive exec channels:</strong> Metrics are collected via ephemeral <code class="text-neutral-400">:ssh_connection.exec</code> channels rather than held-open PTY sessions.</li>
+              <li><strong>Focus-aware backoff:</strong> When a server panel or tab is unfocused, its poll interval dynamically backs off (e.g., from 5s to 30s+), reducing remote host load and battery consumption.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- FAQ 5 -->
+        <div class="collapse collapse-arrow border border-base-content/10 bg-base-200">
+          <input type="checkbox" /> 
+          <div class="collapse-title font-semibold text-neutral-200 text-sm">
+            Can I run ssh-client in a web browser without the desktop window?
+          </div>
+          <div class="collapse-content text-neutral-400 leading-relaxed space-y-2">
+            <p>
+              Yes. The desktop shell is powered by Phoenix LiveView inside an <code class="text-neutral-300">elixir-desktop</code> container. If launched headless with <code class="text-neutral-300">mix phx.server</code> or within a server environment, you can point any modern web browser to <code class="text-neutral-300">http://localhost:4000</code> to access the full UI and xterm.js terminal bridge.
+            </p>
+          </div>
+        </div>
+
+        <!-- FAQ 6 -->
+        <div class="collapse collapse-arrow border border-base-content/10 bg-base-200">
+          <input type="checkbox" /> 
+          <div class="collapse-title font-semibold text-neutral-200 text-sm">
+            Where are imported SSH configurations and host metadata stored?
+          </div>
+          <div class="collapse-content text-neutral-400 leading-relaxed space-y-2">
+            <p>
+              Configurations resolve via Erlang's standard <code class="text-neutral-300">:filename.basedir/3</code>:
+            </p>
+            <ul class="list-disc list-inside space-y-1 text-neutral-300">
+              <li><strong>Windows:</strong> <code class="text-neutral-400">%APPDATA%\ssh-client\servers.json</code></li>
+              <li><strong>Linux:</strong> <code class="text-neutral-400">~/.config/ssh-client/servers.json</code></li>
+            </ul>
+            <p>
+              This file contains only connection metadata (host aliases, IP addresses, ports, auth methods). No private keys, passwords, or secret material are ever persisted in this file.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-base-content/10 bg-base-300/80 py-10 mt-16 font-mono text-xs text-neutral-500">
+    <div class="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <p>ssh-client &bull; Open source under MIT License &bull; Offline & Zero Telemetry</p>
+      <div class="flex gap-6">
+        <a href="index.html" class="hover:text-neutral-300 transition-colors">Overview</a>
+        <a href="changelog.html" class="hover:text-neutral-300 transition-colors">Changelog</a>
+        <a href="https://github.com/dineshkorukonda/ssh-client" target="_blank" rel="noreferrer" class="hover:text-neutral-300 transition-colors">GitHub Repository</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
