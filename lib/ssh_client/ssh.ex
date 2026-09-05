@@ -153,10 +153,19 @@ defmodule SSHClient.SSH do
   end
 
   defp build_ssh_options(target, user, extra_opts) do
+    silent = Keyword.get(extra_opts, :silently_accept_hosts, false)
+
     base = [
-      silently_accept_hosts: true,
+      key_cb: {SSHClient.SSH.KeyCallback, extra_opts},
       user_interaction: false
     ]
+
+    base =
+      if silent do
+        [{:silently_accept_hosts, true} | base]
+      else
+        base
+      end
 
     base =
       if user && user != "" do

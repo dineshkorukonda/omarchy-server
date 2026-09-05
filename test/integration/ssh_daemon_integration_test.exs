@@ -24,7 +24,8 @@ defmodule SSHClient.Integration.SSHDaemonIntegrationTest do
     opts = [
       user: "testuser",
       user_dir: Path.dirname(@key_path),
-      timeout: 3000
+      timeout: 3000,
+      silently_accept_hosts: true
     ]
 
     case SSH.run(@ssh_server, "echo ready", opts) do
@@ -44,7 +45,8 @@ defmodule SSHClient.Integration.SSHDaemonIntegrationTest do
     opts = [
       user: "testuser",
       user_dir: Path.dirname(@key_path),
-      timeout: 5000
+      timeout: 5000,
+      silently_accept_hosts: true
     ]
 
     assert {:ok, output, 0} = SSH.run(@ssh_server, "whoami && uname -s", opts)
@@ -56,7 +58,8 @@ defmodule SSHClient.Integration.SSHDaemonIntegrationTest do
     opts = [
       user: "testuser",
       user_dir: Path.dirname(@key_path),
-      timeout: 5000
+      timeout: 5000,
+      silently_accept_hosts: true
     ]
 
     runner = fn cmd ->
@@ -74,7 +77,8 @@ defmodule SSHClient.Integration.SSHDaemonIntegrationTest do
     opts = [
       user: "testuser",
       user_dir: Path.dirname(@key_path),
-      timeout: 5000
+      timeout: 5000,
+      silently_accept_hosts: true
     ]
 
     runner = fn cmd ->
@@ -100,7 +104,7 @@ defmodule SSHClient.Integration.SSHDaemonIntegrationTest do
 
     worker_runner = fn
       server, :connect ->
-        SSH.connect(server, user_dir: key_dir, timeout: 5000)
+        SSH.connect(server, user_dir: key_dir, timeout: 5000, silently_accept_hosts: true)
 
       _server, {:exec, conn, cmd} ->
         SSH.exec(conn, cmd, timeout: 5000)
