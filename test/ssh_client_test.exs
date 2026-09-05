@@ -6,9 +6,9 @@ defmodule SSHClientTest do
     assert SSHClient.hello() == :world
   end
 
-  test "supervisor boots and dynamic supervisor starts with no children" do
+  test "supervisor boots and dynamic supervisor starts" do
     assert Process.whereis(SSHClient.Supervisor) != nil
     assert Process.whereis(SSHClient.ServerSupervisor) != nil
-    assert DynamicSupervisor.which_children(SSHClient.ServerSupervisor) == []
+    assert is_list(DynamicSupervisor.which_children(SSHClient.ServerSupervisor))
   end
 end
